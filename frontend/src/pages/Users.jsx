@@ -1,10 +1,11 @@
-# frontend/src/pages/Users.jsx
+// frontend/src/pages/Users.jsx
 // ----------------------------
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 function Users() {
   const [users, setUsers] = useState([]);
+  const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -33,6 +34,8 @@ function Users() {
       .then(() => {
         fetchUsers();
         setForm({ name: '', email: '', allergies: '', medical_conditions: '', emergency_contact: '' });
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
       })
       .catch(err => console.error(err));
   };
@@ -40,6 +43,7 @@ function Users() {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-2">Users</h2>
+      {success && <div className="text-green-600 font-semibold">User added successfully!</div>}
       <form onSubmit={handleSubmit} className="space-y-2 mb-4">
         <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="block w-full p-2 border rounded" required />
         <input name="email" value={form.email} onChange={handleChange} placeholder="Email" className="block w-full p-2 border rounded" />

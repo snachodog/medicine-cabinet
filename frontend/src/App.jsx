@@ -1,4 +1,4 @@
-# frontend/src/App.jsx
+//# frontend/src/App.jsx
 // --------------------
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';

@@ -1,10 +1,11 @@
-# frontend/src/pages/Medications.jsx
+// frontend/src/pages/Medications.jsx
 // ----------------------------------
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 function Medications() {
   const [medications, setMedications] = useState([]);
+  const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({
     name: '',
     brand_name: '',
@@ -35,6 +36,8 @@ function Medications() {
       .then(() => {
         fetchMedications();
         setForm({ name: '', brand_name: '', form: '', dosage: '', instructions: '', category: '', notes: '' });
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
       })
       .catch(err => console.error(err));
   };
@@ -42,6 +45,7 @@ function Medications() {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-2">Medications</h2>
+      {success && <div className="text-green-600 font-semibold">Medication added successfully!</div>}
       <form onSubmit={handleSubmit} className="space-y-2 mb-4">
         <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="block w-full p-2 border rounded" required />
         <input name="brand_name" value={form.brand_name} onChange={handleChange} placeholder="Brand Name" className="block w-full p-2 border rounded" />
