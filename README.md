@@ -63,11 +63,11 @@ medicabinet/
 ```
 ### Road Map
 - [ ] Add authentication and role-based access
--  Add medication usage logging
--  Refill reminders and email alerts
--  Doctor & pharmacy directory
--  Mobile-friendly UI
--  API support for mobile/PWA clients
+- [ ] Add medication usage logging
+- [ ] Refill reminders and email alerts/notifications
+- [ ] Doctor & pharmacy directory
+- [ ] Mobile-friendly UI
+- [ ] API support for mobile/PWA clients
 
 ### 🛡️ Privacy & Security
 
