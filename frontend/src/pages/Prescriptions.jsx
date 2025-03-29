@@ -1,10 +1,13 @@
- frontend/src/pages/Prescriptions.jsx
+# frontend/src/pages/Prescriptions.jsx
 // ------------------------------------
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 function Prescriptions() {
   const [prescriptions, setPrescriptions] = useState([]);
+  const [medications, setMedications] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({
     medication_id: '',
     user_id: '',
@@ -18,11 +21,25 @@ function Prescriptions() {
 
   useEffect(() => {
     fetchPrescriptions();
+    fetchMedications();
+    fetchUsers();
   }, []);
 
   const fetchPrescriptions = () => {
     axios.get('http://localhost:8000/prescriptions')
       .then(res => setPrescriptions(res.data))
+      .catch(err => console.error(err));
+  };
+
+  const fetchMedications = () => {
+    axios.get('http://localhost:8000/medications')
+      .then(res => setMedications(res.data))
+      .catch(err => console.error(err));
+  };
+
+  const fetchUsers = () => {
+    axios.get('http://localhost:8000/users')
+      .then(res => setUsers(res.data))
       .catch(err => console.error(err));
   };
 
@@ -42,6 +59,8 @@ function Prescriptions() {
       .then(() => {
         fetchPrescriptions();
         setForm({ medication_id: '', user_id: '', date_prescribed: '', date_filled: '', refills_remaining: '', expiration_date: '', status: 'active', notes: '' });
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
       })
       .catch(err => console.error(err));
   };
@@ -49,9 +68,20 @@ function Prescriptions() {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-2">Prescriptions</h2>
+      {success && <div className="text-green-600 font-semibold">Prescription added successfully!</div>}
       <form onSubmit={handleSubmit} className="space-y-2 mb-4">
-        <input name="medication_id" value={form.medication_id} onChange={handleChange} placeholder="Medication ID" type="number" className="block w-full p-2 border rounded" required />
-        <input name="user_id" value={form.user_id} onChange={handleChange} placeholder="User ID" type="number" className="block w-full p-2 border rounded" required />
+        <select name="medication_id" value={form.medication_id} onChange={handleChange} className="block w-full p-2 border rounded" required>
+          <option value="">Select Medication</option>
+          {medications.map(m => (
+            <option key={m.id} value={m.id}>{m.name}</option>
+          ))}
+        </select>
+        <select name="user_id" value={form.user_id} onChange={handleChange} className="block w-full p-2 border rounded" required>
+          <option value="">Select User</option>
+          {users.map(u => (
+            <option key={u.id} value={u.id}>{u.name}</option>
+          ))}
+        </select>
         <input name="date_prescribed" value={form.date_prescribed} onChange={handleChange} placeholder="Date Prescribed (YYYY-MM-DD)" className="block w-full p-2 border rounded" />
         <input name="date_filled" value={form.date_filled} onChange={handleChange} placeholder="Date Filled (YYYY-MM-DD)" className="block w-full p-2 border rounded" />
         <input name="refills_remaining" value={form.refills_remaining} onChange={handleChange} placeholder="Refills Remaining" type="number" className="block w-full p-2 border rounded" />

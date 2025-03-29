@@ -1,10 +1,11 @@
-# frontend/src/pages/Consumables.jsx
+// frontend/src/pages/Consumables.jsx
 // ----------------------------------
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 function Consumables() {
   const [consumables, setConsumables] = useState([]);
+  const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({
     name: '',
     category: '',
@@ -35,6 +36,8 @@ function Consumables() {
       .then(() => {
         fetchConsumables();
         setForm({ name: '', category: '', quantity: '', reorder_threshold: '', storage_location: '', notes: '' });
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
       })
       .catch(err => console.error(err));
   };
@@ -42,6 +45,7 @@ function Consumables() {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-2">Consumables</h2>
+      {success && <div className="text-green-600 font-semibold">Consumable added successfully!</div>}
       <form onSubmit={handleSubmit} className="space-y-2 mb-4">
         <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className="block w-full p-2 border rounded" required />
         <input name="category" value={form.category} onChange={handleChange} placeholder="Category" className="block w-full p-2 border rounded" />
