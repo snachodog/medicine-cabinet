@@ -4,19 +4,29 @@ services:
   backend:
     build: ./backend
     container_name: medicabinet-backend
+    volumes:
+      - ./backend:/app
     ports:
       - "8000:8000"
-    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    # Use reload for development; note the command is overridden here
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       - db
 
   frontend:
     build: ./frontend
     container_name: medicabinet-frontend
+    volumes:
+      - ./frontend:/app
+      # Persist node_modules inside the container to avoid conflicts with host
+      - /app/node_modules
     ports:
-      - "80:80"
-    depends_on:
-      - backend
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    working_dir: /app
+    # Start the development server
+    command: npm run dev
 
   db:
     image: postgres:15

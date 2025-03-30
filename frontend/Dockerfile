@@ -1,24 +1,18 @@
-# Stage 1: Build
-FROM node:20-alpine AS build
+# Use the official Node.js image
+FROM node:20-alpine
 
+# Set the working directory
 WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy all source files and build the app
+# Copy the rest of the source code
 COPY . .
-RUN npm run build
 
-# Stage 2: Production container with Nginx
-FROM nginx:alpine
+# Expose the port your dev server runs on (usually 3000)
+EXPOSE 3000
 
-# Copy built static files from Stage 1
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Expose port 80 for the web server
-EXPOSE 80
-
-# Run Nginx in the foreground
-CMD ["nginx", "-g", "daemon off;"]
+# Run the development server
+CMD ["npm", "run", "dev"]
