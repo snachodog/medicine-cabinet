@@ -12,11 +12,12 @@ app = FastAPI()
 # CORS settings for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # You can restrict this to specific origins in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(users.router)
 app.include_router(medications.router)
 app.include_router(prescriptions.router)
