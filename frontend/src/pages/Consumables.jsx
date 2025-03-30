@@ -20,7 +20,7 @@ function Consumables() {
   }, []);
 
   const fetchConsumables = () => {
-    axios.get('http://localhost:8000/consumables')
+    axios.get('http://localhost:8085/consumables')
       .then(res => setConsumables(res.data))
       .catch(err => console.error(err));
   };
@@ -32,7 +32,7 @@ function Consumables() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { ...form, quantity: parseInt(form.quantity), reorder_threshold: parseInt(form.reorder_threshold) };
-    axios.post('http://localhost:8000/consumables', payload)
+    axios.post('http://localhost:8085/consumables', payload)
       .then(() => {
         fetchConsumables();
         setForm({ name: '', category: '', quantity: '', reorder_threshold: '', storage_location: '', notes: '' });

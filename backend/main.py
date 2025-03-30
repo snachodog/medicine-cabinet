@@ -24,4 +24,4 @@ app.include_router(consumables.router)
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to MediCabinet API"}
+    return {"message": "Welcome to Medicine Cabinet API"}
