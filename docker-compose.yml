@@ -8,8 +8,8 @@ services:
       - ./backend:/app
     ports:
       - "8085:8000"
-    # Use reload for development; note the command is overridden here
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    # Use reload for development; note the command is overridden here 
+    command: uvicorn --app-dir /app main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       - db
 
