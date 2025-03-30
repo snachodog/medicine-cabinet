@@ -19,7 +19,7 @@ function Users() {
   }, []);
 
   const fetchUsers = () => {
-    axios.get('http://localhost:8000/users')
+    axios.get('http://localhost:8085/users')
       .then(res => setUsers(res.data))
       .catch(err => console.error(err));
   };
@@ -30,7 +30,7 @@ function Users() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:8000/users', form)
+    axios.post('http://localhost:8085/users', form)
       .then(() => {
         fetchUsers();
         setForm({ name: '', email: '', allergies: '', medical_conditions: '', emergency_contact: '' });
