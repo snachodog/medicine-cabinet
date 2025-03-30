@@ -21,9 +21,9 @@ services:
     volumes:
       - ./frontend:/app
       # Persist node_modules inside the container to avoid conflicts with host
-      - /app/node_modules
+      - frontend_node_modules:/app/node_modules
     ports:
-      - "5173:3000"
+      - "5173:5173"
     environment:
       - CHOKIDAR_USEPOLLING=true
     working_dir: /app
@@ -43,3 +43,4 @@ services:
 
 volumes:
   postgres_data:
+  frontend_node_modules:
