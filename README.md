@@ -6,15 +6,18 @@ Inspired by tools like Snipe-IT, this app treats prescription meds as trackable 
 
 ---
 
-## ✨ Features (MVP)
+## ✨ Current Features
+- Medication Management:
+Add, view, update, and delete medications (both prescription and OTC).
 
-- ✅ Add and manage medications (prescription or OTC)
-- ✅ Track who each medication is for
-- ✅ Track expiration dates and refills
-- ✅ Add and manage consumables like band-aids, wraps, and more
-- ✅ Track inventory quantities for consumables
-- ✅ Visual dashboard for expiring meds and low stock items
-- ✅ Simple category system for organization
+- Consumable Tracking:
+Manage basic consumable items like first-aid supplies and band-aids.
+
+- Basic Detail Recording:
+Record key information such as medication names, dosages, and expiration dates.
+
+- Simple Categorization:
+Organize items using a basic category system for easier navigation.
 
 ---
 
@@ -66,8 +69,11 @@ medicabinet/
 - [ ] Add medication usage logging
 - [ ] Refill reminders and email alerts/notifications
 - [ ] Doctor & pharmacy directory
+- [ ] Enhanced Visual Dashboard with detailed view and analytics for expiring medications and low stock
+- [ ] Doctor & pharmacy directory
 - [ ] Mobile-friendly UI
 - [ ] API support for mobile/PWA clients
+- [ ] Track medication allergies
 
 ### 🛡️ Privacy & Security
 
