@@ -1,27 +1,24 @@
-# Use official Node.js image
-FROM node:20-alpine
+# Stage 1: Build
+FROM node:20-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy package.json and lock file
-COPY package*.json ./
-
 # Install dependencies
+COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the source code
+# Copy all source files and build the app
 COPY . .
-
-# Build the frontend
 RUN npm run build
 
-# Use a lightweight web server to serve the static files
+# Stage 2: Production container with Nginx
 FROM nginx:alpine
-COPY --from=0 /app/dist /usr/share/nginx/html
 
-# Expose port
+# Copy built static files from Stage 1
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Expose port 80 for the web server
 EXPOSE 80
 
-# Default command
+# Run Nginx in the foreground
 CMD ["nginx", "-g", "daemon off;"]
