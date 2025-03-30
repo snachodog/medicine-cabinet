@@ -36,7 +36,7 @@ Inspired by tools like Snipe-IT, this app treats prescription meds as trackable 
 ### Clone the Repo
 
 ```bash
-git clone https://github.com/yourusername/medicabinet.git
+git clone https://github.com/snachodog/medicabinet.git
 cd medicabinet
 ```
 
