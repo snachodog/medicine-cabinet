@@ -21,7 +21,7 @@ function Medications() {
   }, []);
 
   const fetchMedications = () => {
-    axios.get('http://localhost:8000/medications')
+    axios.get('http://localhost:8085/medications')
       .then(res => setMedications(res.data))
       .catch(err => console.error(err));
   };
@@ -32,7 +32,7 @@ function Medications() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:8000/medications', form)
+    axios.post('http://localhost:8085/medications', form)
       .then(() => {
         fetchMedications();
         setForm({ name: '', brand_name: '', form: '', dosage: '', instructions: '', category: '', notes: '' });

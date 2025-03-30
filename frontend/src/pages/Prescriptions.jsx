@@ -26,19 +26,19 @@ function Prescriptions() {
   }, []);
 
   const fetchPrescriptions = () => {
-    axios.get('http://localhost:8000/prescriptions')
+    axios.get('http://localhost:8085/prescriptions')
       .then(res => setPrescriptions(res.data))
       .catch(err => console.error(err));
   };
 
   const fetchMedications = () => {
-    axios.get('http://localhost:8000/medications')
+    axios.get('http://localhost:8085/medications')
       .then(res => setMedications(res.data))
       .catch(err => console.error(err));
   };
 
   const fetchUsers = () => {
-    axios.get('http://localhost:8000/users')
+    axios.get('http://localhost:8085/users')
       .then(res => setUsers(res.data))
       .catch(err => console.error(err));
   };
@@ -55,7 +55,7 @@ function Prescriptions() {
       user_id: parseInt(form.user_id),
       refills_remaining: parseInt(form.refills_remaining) || 0
     };
-    axios.post('http://localhost:8000/prescriptions', payload)
+    axios.post('http://localhost:8085/prescriptions', payload)
       .then(() => {
         fetchPrescriptions();
         setForm({ medication_id: '', user_id: '', date_prescribed: '', date_filled: '', refills_remaining: '', expiration_date: '', status: 'active', notes: '' });
