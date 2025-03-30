@@ -10,7 +10,7 @@ import Consumables from './pages/Consumables';
 function App() {
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 p-4">
-      <header className="text-2xl font-bold mb-4">MediCabinet</header>
+      <header className="text-2xl font-bold mb-4">Medicine Cabinet</header>
       <nav className="space-x-4 mb-4">
         <Link to="/users" className="text-blue-500 hover:underline">Users</Link>
         <Link to="/medications" className="text-blue-500 hover:underline">Medications</Link>
@@ -22,7 +22,7 @@ function App() {
         <Route path="/medications" element={<Medications />} />
         <Route path="/prescriptions" element={<Prescriptions />} />
         <Route path="/consumables" element={<Consumables />} />
-        <Route path="/" element={<div>Welcome to the MediCabinet frontend!</div>} />
+        <Route path="/" element={<div>Welcome to the Medicine Cabinet frontend!</div>} />
       </Routes>
     </div>
   );
