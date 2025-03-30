@@ -1,4 +1,4 @@
-# frontend/src/pages/Prescriptions.jsx
+// frontend/src/pages/Prescriptions.jsx
 // ------------------------------------
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
