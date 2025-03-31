@@ -12,9 +12,9 @@ app = FastAPI()
 # CORS settings for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can restrict this to specific origins in production
+    allow_origins=["http://localhost:5173", "http://medicabinet-frontend:5173"],  # Allow both host and container URLs
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
