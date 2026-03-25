@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .. import crud, schemas, database
+from ..auth import get_current_account
 
 router = APIRouter(
     prefix="/consumables",
@@ -14,17 +15,29 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=schemas.Consumable)
-def create_consumable(consumable: schemas.ConsumableCreate, db: Session = Depends(database.get_db)):
+def create_consumable(
+    consumable: schemas.ConsumableCreate,
+    db: Session = Depends(database.get_db),
+    _account=Depends(get_current_account),
+):
     return crud.create_consumable(db=db, consumable=consumable)
 
 @router.get("/", response_model=list[schemas.Consumable])
 def read_consumables(
-    skip: int = 0, limit: int = 100, search: Optional[str] = None, db: Session = Depends(database.get_db)
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    db: Session = Depends(database.get_db),
+    _account=Depends(get_current_account),
 ):
     return crud.get_consumables(db, skip=skip, limit=limit, search=search)
 
 @router.get("/{consumable_id}", response_model=schemas.Consumable)
-def read_consumable(consumable_id: int, db: Session = Depends(database.get_db)):
+def read_consumable(
+    consumable_id: int,
+    db: Session = Depends(database.get_db),
+    _account=Depends(get_current_account),
+):
     db_item = crud.get_consumable(db, consumable_id=consumable_id)
     if db_item is None:
         raise HTTPException(status_code=404, detail="Consumable not found")
@@ -32,7 +45,10 @@ def read_consumable(consumable_id: int, db: Session = Depends(database.get_db)):
 
 @router.put("/{consumable_id}", response_model=schemas.Consumable)
 def update_consumable(
-    consumable_id: int, consumable: schemas.ConsumableUpdate, db: Session = Depends(database.get_db)
+    consumable_id: int,
+    consumable: schemas.ConsumableUpdate,
+    db: Session = Depends(database.get_db),
+    _account=Depends(get_current_account),
 ):
     db_item = crud.update_consumable(db, consumable_id=consumable_id, consumable=consumable)
     if db_item is None:
@@ -40,7 +56,11 @@ def update_consumable(
     return db_item
 
 @router.delete("/{consumable_id}", response_model=schemas.Consumable)
-def delete_consumable(consumable_id: int, db: Session = Depends(database.get_db)):
+def delete_consumable(
+    consumable_id: int,
+    db: Session = Depends(database.get_db),
+    _account=Depends(get_current_account),
+):
     db_item = crud.delete_consumable(db, consumable_id=consumable_id)
     if db_item is None:
         raise HTTPException(status_code=404, detail="Consumable not found")
