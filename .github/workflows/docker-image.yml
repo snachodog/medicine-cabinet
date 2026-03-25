@@ -35,3 +35,13 @@ jobs:
         run: |
           docker push ${{ vars.DOCKER_USERNAME }}/medicine-cabinet:${{ github.sha }}
           docker push ${{ vars.DOCKER_USERNAME }}/medicine-cabinet:latest
+
+      - name: Notify via ntfy
+        if: always() && github.event_name == 'push'
+        run: |
+          curl -s \
+            -H "Authorization: Bearer ${{ secrets.NTFY_TOKEN }}" \
+            -H "Title: Medicine Cabinet CI — ${{ job.status }}" \
+            -H "Tags: ${{ job.status == 'success' && 'white_check_mark' || 'x' }}" \
+            -d "Build ${{ github.sha }} ${{ job.status }} on branch ${{ github.ref_name }}" \
+            ${{ secrets.NTFY_URL }}
