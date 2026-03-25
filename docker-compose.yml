@@ -2,33 +2,25 @@ version: '3.9'
 
 services:
   backend:
-    build: ./backend
+    image: dogiakos/medicine-cabinet-backend:latest
     container_name: medicabinet-backend
-    volumes:
-      - ./:/app # mount the entire repository
-    working_dir: /app
     ports:
       - "8085:8000"
-    # Use reload for development; note the command is overridden here 
-    # Use the full package path so that relative imports work
-    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-medicabinet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-medicabinet_db}
+      POSTGRES_HOST: db
+      SECRET_KEY: ${SECRET_KEY}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
     depends_on:
       - db
 
   frontend:
-    build: ./frontend
+    image: dogiakos/medicine-cabinet-frontend:latest
     container_name: medicabinet-frontend
-    volumes:
-      - ./frontend:/app
-      # Persist node_modules inside the container to avoid conflicts with host
-      - frontend_node_modules:/app/node_modules
     ports:
       - "5173:5173"
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    working_dir: /app
-    # Start the development server
-    command: npm run dev
 
   db:
     image: postgres:15
@@ -43,4 +35,3 @@ services:
 
 volumes:
   postgres_data:
-  frontend_node_modules:
