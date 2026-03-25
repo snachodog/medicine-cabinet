@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
   function login(newToken) {
     localStorage.setItem('mc_token', newToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+    setLoading(true);
     setToken(newToken);
   }
 
