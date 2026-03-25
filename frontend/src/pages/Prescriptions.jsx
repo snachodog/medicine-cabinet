@@ -4,7 +4,7 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 
 const EMPTY = {
-  medication_id: '', user_id: '', date_prescribed: '', date_filled: '',
+  medication_id: '', person_id: '', date_prescribed: '', date_filled: '',
   refills_remaining: '', expiration_date: '', status: 'active', notes: '',
 };
 
@@ -13,7 +13,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 function validate(form) {
   const errors = {};
   if (!form.medication_id) errors.medication_id = 'Medication is required';
-  if (!form.user_id) errors.user_id = 'Person is required';
+  if (!form.person_id) errors.person_id = 'Person is required';
   if (form.date_prescribed && !DATE_RE.test(form.date_prescribed)) errors.date_prescribed = 'Use YYYY-MM-DD format';
   if (form.date_filled && !DATE_RE.test(form.date_filled)) errors.date_filled = 'Use YYYY-MM-DD format';
   if (form.expiration_date && !DATE_RE.test(form.expiration_date)) errors.expiration_date = 'Use YYYY-MM-DD format';
@@ -39,7 +39,7 @@ function Field({ label, error, children }) {
   );
 }
 
-function PrescriptionForm({ form, onChange, errors, medications, users, submitLabel, onSubmit, onCancel }) {
+function PrescriptionForm({ form, onChange, errors, medications, persons, submitLabel, onSubmit, onCancel }) {
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <Field label="Medication *" error={errors.medication_id}>
@@ -49,11 +49,11 @@ function PrescriptionForm({ form, onChange, errors, medications, users, submitLa
           {medications.map(m => <option key={m.id} value={m.id}>{m.name}{m.dosage ? ` — ${m.dosage}` : ''}</option>)}
         </select>
       </Field>
-      <Field label="Person *" error={errors.user_id}>
-        <select name="user_id" value={form.user_id} onChange={onChange}
-          className={`block w-full p-2 border rounded ${errors.user_id ? 'border-red-500' : ''}`}>
+      <Field label="Person *" error={errors.person_id}>
+        <select name="person_id" value={form.person_id} onChange={onChange}
+          className={`block w-full p-2 border rounded ${errors.person_id ? 'border-red-500' : ''}`}>
           <option value="">Select person</option>
-          {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+          {persons.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
         </select>
       </Field>
       <Field label="Date Prescribed" error={errors.date_prescribed}>
@@ -91,7 +91,7 @@ function PrescriptionForm({ form, onChange, errors, medications, users, submitLa
 function Prescriptions() {
   const [prescriptions, setPrescriptions] = useState([]);
   const [medications, setMedications] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [persons, setPersons] = useState([]);
   const [addForm, setAddForm] = useState(EMPTY);
   const [addErrors, setAddErrors] = useState({});
   const [editId, setEditId] = useState(null);
@@ -105,18 +105,18 @@ function Prescriptions() {
   const fetchAll = useCallback(() => {
     axios.get('/api/prescriptions').then(r => setPrescriptions(r.data)).catch(console.error);
     axios.get('/api/medications').then(r => setMedications(r.data)).catch(console.error);
-    axios.get('/api/users').then(r => setUsers(r.data)).catch(console.error);
+    axios.get('/api/persons').then(r => setPersons(r.data)).catch(console.error);
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const medName = (id) => medications.find(m => m.id === id)?.name ?? `#${id}`;
-  const userName = (id) => users.find(u => u.id === id)?.name ?? `#${id}`;
+  const personName = (id) => persons.find(u => u.id === id)?.name ?? `#${id}`;
 
   const toPayload = (form) => ({
     ...form,
     medication_id: parseInt(form.medication_id),
-    user_id: parseInt(form.user_id),
+    person_id: parseInt(form.person_id),
     refills_remaining: form.refills_remaining !== '' ? parseInt(form.refills_remaining) : null,
     date_prescribed: form.date_prescribed || null,
     date_filled: form.date_filled || null,
@@ -136,7 +136,7 @@ function Prescriptions() {
   const openEdit = (rx) => {
     setEditForm({
       medication_id: String(rx.medication_id),
-      user_id: String(rx.user_id),
+      person_id: String(rx.person_id),
       date_prescribed: rx.date_prescribed || '',
       date_filled: rx.date_filled || '',
       refills_remaining: rx.refills_remaining ?? '',
@@ -173,7 +173,7 @@ function Prescriptions() {
         <h3 className="font-medium mb-3">Add Prescription</h3>
         <PrescriptionForm
           form={addForm} onChange={e => setAddForm({ ...addForm, [e.target.name]: e.target.value })}
-          errors={addErrors} medications={medications} users={users}
+          errors={addErrors} medications={medications} persons={persons}
           submitLabel="Add Prescription" onSubmit={handleAddSubmit}
         />
       </div>
@@ -189,7 +189,7 @@ function Prescriptions() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <span className="font-medium">{medName(rx.medication_id)}</span>
-                      <span className="text-gray-500 text-sm ml-2">for {userName(rx.user_id)}</span>
+                      <span className="text-gray-500 text-sm ml-2">for {personName(rx.person_id)}</span>
                       <div className="text-sm text-gray-500 mt-0.5 space-x-3">
                         {rx.status && <span className="capitalize">{rx.status}</span>}
                         {rx.refills_remaining != null && <span>{rx.refills_remaining} refill{rx.refills_remaining !== 1 ? 's' : ''} left</span>}
@@ -215,7 +215,7 @@ function Prescriptions() {
       <Modal isOpen={editId !== null} onClose={() => setEditId(null)} title="Edit Prescription">
         <PrescriptionForm
           form={editForm} onChange={e => setEditForm({ ...editForm, [e.target.name]: e.target.value })}
-          errors={editErrors} medications={medications} users={users}
+          errors={editErrors} medications={medications} persons={persons}
           submitLabel="Save" onSubmit={handleEditSubmit} onCancel={() => setEditId(null)}
         />
       </Modal>
@@ -223,7 +223,7 @@ function Prescriptions() {
       <Modal isOpen={deleteTarget !== null} onClose={() => setDeleteTarget(null)} title="Delete Prescription">
         <p className="mb-5">
           Delete the prescription for <strong>{deleteTarget && medName(deleteTarget.medication_id)}</strong>
-          {' '}({deleteTarget && userName(deleteTarget.user_id)})? This cannot be undone.
+          {' '}({deleteTarget && personName(deleteTarget.person_id)})? This cannot be undone.
         </p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>

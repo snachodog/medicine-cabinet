@@ -50,7 +50,7 @@ function Users() {
   const showFlash = (msg) => { setFlash(msg); setTimeout(() => setFlash(''), 3000); };
 
   const fetchUsers = useCallback(() => {
-    axios.get('/api/users').then(r => setUsers(r.data)).catch(console.error);
+    axios.get('/api/persons').then(r => setUsers(r.data)).catch(console.error);
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
@@ -60,7 +60,7 @@ function Users() {
     const errors = validate(addForm);
     if (Object.keys(errors).length) { setAddErrors(errors); return; }
     setAddErrors({});
-    axios.post('/api/users', addForm)
+    axios.post('/api/persons', addForm)
       .then(() => { fetchUsers(); setAddForm(EMPTY); showFlash('Person added'); })
       .catch(console.error);
   };
@@ -82,13 +82,13 @@ function Users() {
     const errors = validate(editForm);
     if (Object.keys(errors).length) { setEditErrors(errors); return; }
     setEditErrors({});
-    axios.put(`/api/users/${editId}`, editForm)
+    axios.put(`/api/persons/${editId}`, editForm)
       .then(() => { fetchUsers(); setEditId(null); showFlash('Person updated'); })
       .catch(console.error);
   };
 
   const confirmDelete = () => {
-    axios.delete(`/api/users/${deleteTarget.id}`)
+    axios.delete(`/api/persons/${deleteTarget.id}`)
       .then(() => { fetchUsers(); setDeleteTarget(null); showFlash('Person deleted'); })
       .catch(console.error);
   };
