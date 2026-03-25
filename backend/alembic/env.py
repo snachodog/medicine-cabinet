@@ -4,10 +4,12 @@ from alembic import context
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+# Insert /app so that `backend` is importable as a package, which allows
+# the relative imports inside models.py and database.py to resolve.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from database import Base, DATABASE_URL
-import models  # noqa: F401 — ensures all models are registered
+from backend.database import Base, DATABASE_URL
+from backend import models  # noqa: F401 — ensures all models are registered
 
 config = context.config
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
