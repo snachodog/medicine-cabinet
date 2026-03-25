@@ -1,5 +1,14 @@
 // frontend/src/pages/Prescriptions.jsx
 // ------------------------------------
+// TODO: Add inline edit and delete controls to each prescription list item. Clicking
+// edit should populate the form. Clicking delete should confirm before calling
+// DELETE /api/prescriptions/:id.
+// TODO: Highlight prescriptions expiring within 30 days in yellow and expired ones in
+// red in the list view. Compare expiration_date to today's date client-side.
+// TODO: Show medication name and user name in the list instead of raw IDs. The data
+// is already fetched — join it by matching medication_id and user_id.
+// TODO: Add client-side form validation. medication_id and user_id are required;
+// date fields should reject invalid date strings before submission.
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
@@ -26,19 +35,19 @@ function Prescriptions() {
   }, []);
 
   const fetchPrescriptions = () => {
-    axios.get('http://localhost:8085/prescriptions')
+    axios.get('/api/prescriptions')
       .then(res => setPrescriptions(res.data))
       .catch(err => console.error(err));
   };
 
   const fetchMedications = () => {
-    axios.get('http://localhost:8085/medications')
+    axios.get('/api/medications')
       .then(res => setMedications(res.data))
       .catch(err => console.error(err));
   };
 
   const fetchUsers = () => {
-    axios.get('http://localhost:8085/users')
+    axios.get('/api/users')
       .then(res => setUsers(res.data))
       .catch(err => console.error(err));
   };
@@ -55,7 +64,7 @@ function Prescriptions() {
       user_id: parseInt(form.user_id),
       refills_remaining: parseInt(form.refills_remaining) || 0
     };
-    axios.post('http://localhost:8085/prescriptions', payload)
+    axios.post('/api/prescriptions', payload)
       .then(() => {
         fetchPrescriptions();
         setForm({ medication_id: '', user_id: '', date_prescribed: '', date_filled: '', refills_remaining: '', expiration_date: '', status: 'active', notes: '' });

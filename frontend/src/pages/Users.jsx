@@ -1,5 +1,10 @@
 // frontend/src/pages/Users.jsx
 // ----------------------------
+// TODO: Add inline edit and delete controls to each user list item. Clicking edit
+// should populate the form with the existing record. Clicking delete should confirm
+// before calling DELETE /api/users/:id.
+// TODO: Add client-side form validation. Name is required; email should be validated
+// as a valid email format. Show inline error messages under each invalid field.
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
@@ -19,7 +24,7 @@ function Users() {
   }, []);
 
   const fetchUsers = () => {
-    axios.get('http://localhost:8085/users')
+    axios.get('/api/users')
       .then(res => setUsers(res.data))
       .catch(err => console.error(err));
   };
@@ -30,7 +35,7 @@ function Users() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:8085/users', form)
+    axios.post('/api/users', form)
       .then(() => {
         fetchUsers();
         setForm({ name: '', email: '', allergies: '', medical_conditions: '', emergency_contact: '' });

@@ -1,5 +1,15 @@
 // frontend/src/pages/Medications.jsx
 // ----------------------------------
+// TODO: Add inline edit and delete controls to each medication list item. Clicking edit
+// should populate the form fields with the existing record. Clicking delete should show
+// a confirmation dialog before calling DELETE /api/medications/:id.
+// TODO: Add a search bar and category filter above the medication list. Filter results
+// client-side on name, brand_name, and category. Add a backend GET /medications?search=
+// query parameter for server-side search as a follow-up.
+// TODO: Add client-side form validation. Name is required. Show inline error messages
+// under each invalid field rather than relying on the browser's default required behavior.
+// TODO: Add barcode scanning support to pre-fill the medication name and dosage fields.
+// Use a library like html5-qrcode or quagga2 to scan via the device camera.
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
@@ -21,7 +31,7 @@ function Medications() {
   }, []);
 
   const fetchMedications = () => {
-    axios.get('http://localhost:8085/medications')
+    axios.get('/api/medications')
       .then(res => setMedications(res.data))
       .catch(err => console.error(err));
   };
@@ -32,7 +42,7 @@ function Medications() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:8085/medications', form)
+    axios.post('/api/medications', form)
       .then(() => {
         fetchMedications();
         setForm({ name: '', brand_name: '', form: '', dosage: '', instructions: '', category: '', notes: '' });
