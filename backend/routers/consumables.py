@@ -3,6 +3,7 @@
 # TODO: Add a GET /consumables/low-stock endpoint that returns consumables where
 # quantity is at or below reorder_threshold. Add a corresponding crud function
 # using a SQLAlchemy filter on Consumable.quantity <= Consumable.reorder_threshold.
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .. import crud, schemas, database
@@ -17,8 +18,10 @@ def create_consumable(consumable: schemas.ConsumableCreate, db: Session = Depend
     return crud.create_consumable(db=db, consumable=consumable)
 
 @router.get("/", response_model=list[schemas.Consumable])
-def read_consumables(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
-    return crud.get_consumables(db, skip=skip, limit=limit)
+def read_consumables(
+    skip: int = 0, limit: int = 100, search: Optional[str] = None, db: Session = Depends(database.get_db)
+):
+    return crud.get_consumables(db, skip=skip, limit=limit, search=search)
 
 @router.get("/{consumable_id}", response_model=schemas.Consumable)
 def read_consumable(consumable_id: int, db: Session = Depends(database.get_db)):

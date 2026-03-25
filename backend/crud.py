@@ -2,6 +2,8 @@
 # ---------------
 # CRUD operations for MediCabinet entities
 
+from typing import Optional
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from . import models, schemas
 
@@ -48,8 +50,16 @@ def create_medication(db: Session, medication: schemas.MedicationCreate):
     db.refresh(db_med)
     return db_med
 
-def get_medications(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Medication).offset(skip).limit(limit).all()
+def get_medications(db: Session, skip: int = 0, limit: int = 100, search: Optional[str] = None):
+    query = db.query(models.Medication)
+    if search:
+        term = f"%{search}%"
+        query = query.filter(or_(
+            models.Medication.name.ilike(term),
+            models.Medication.brand_name.ilike(term),
+            models.Medication.category.ilike(term),
+        ))
+    return query.offset(skip).limit(limit).all()
 
 def get_medication(db: Session, medication_id: int):
     return db.query(models.Medication).filter(models.Medication.id == medication_id).first()
@@ -116,8 +126,15 @@ def create_consumable(db: Session, consumable: schemas.ConsumableCreate):
     db.refresh(db_item)
     return db_item
 
-def get_consumables(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Consumable).offset(skip).limit(limit).all()
+def get_consumables(db: Session, skip: int = 0, limit: int = 100, search: Optional[str] = None):
+    query = db.query(models.Consumable)
+    if search:
+        term = f"%{search}%"
+        query = query.filter(or_(
+            models.Consumable.name.ilike(term),
+            models.Consumable.category.ilike(term),
+        ))
+    return query.offset(skip).limit(limit).all()
 
 def get_consumable(db: Session, consumable_id: int):
     return db.query(models.Consumable).filter(models.Consumable.id == consumable_id).first()
