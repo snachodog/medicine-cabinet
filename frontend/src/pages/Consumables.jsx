@@ -1,5 +1,12 @@
 // frontend/src/pages/Consumables.jsx
 // ----------------------------------
+// TODO: Add inline edit and delete controls to each consumable list item. Clicking
+// edit should populate the form. Clicking delete should confirm before calling
+// DELETE /api/consumables/:id.
+// TODO: Highlight consumables where quantity is at or below reorder_threshold in
+// yellow in the list view to indicate low stock.
+// TODO: Add client-side form validation. Name and quantity are required; quantity
+// and reorder_threshold must be non-negative integers.
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 

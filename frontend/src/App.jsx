@@ -1,5 +1,11 @@
 // frontend/src/App.jsx
 // --------------------
+// TODO: Add a Dashboard page as the default route showing expiring-soon prescriptions,
+// low-stock consumables, and recent activity. Add a /dashboard route and nav link.
+// TODO: Make the layout mobile-responsive using Tailwind breakpoints. Replace the flat
+// nav with a hamburger menu on small screens and add a sidebar for larger screens.
+// TODO: Add route-level authentication guards. Redirect unauthenticated users to /login.
+// All routes except /login should require a valid session.
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import Users from './pages/Users';

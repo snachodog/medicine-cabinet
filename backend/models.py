@@ -1,6 +1,13 @@
 # backend/models.py
 # -----------------
 # SQLAlchemy models for MVP entities
+# TODO: Separate the User model into Account (login credentials) and Person (whose meds
+# are tracked). A household may have one Account but multiple Persons. Add an Account
+# model with hashed_password and a one-to-many relationship to Person. Migrate existing
+# User records to Person and create Alembic migrations for the change.
+# TODO: Add an AuditLog model to record create/update/delete events with entity_type,
+# entity_id, action, changed_by, and timestamp. Wire it into CRUD operations so all
+# changes are traceable.
 
 from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey
 from sqlalchemy.orm import relationship
