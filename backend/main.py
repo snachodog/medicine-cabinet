@@ -1,6 +1,14 @@
 # backend/main.py
 # --------------
 # FastAPI entry point
+# TODO: Implement JWT authentication. Add a /auth/login endpoint that returns a signed
+# JWT, and a /auth/me endpoint. Use python-jose and passlib[bcrypt]. Protect all
+# existing routers with an OAuth2PasswordBearer dependency.
+# TODO: Add email notification support for refill reminders and expiration alerts.
+# Use a background task or APScheduler to send warnings 7 and 30 days before
+# prescription expiration_date. Consider fastapi-mail for SMTP integration.
+# TODO: Add CSV import/export endpoints (e.g. GET /export/medications, POST /import/medications)
+# so users can bulk-manage their inventory without a UI.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

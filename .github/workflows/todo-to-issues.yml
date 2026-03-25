@@ -1,0 +1,31 @@
+name: TODO to Issues
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  todo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    # Skip on merge commits from the action itself to avoid loops
+    if: "!contains(github.event.head_commit.message, '[bot]')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan TODOs and create issues
+        uses: alstr/todo-to-issue-action@v5
+        with:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLOSE_ISSUES: true
+          AUTO_ASSIGN: true
+          IDENTIFIERS: |
+            [
+              {"name": "TODO", "labels": ["enhancement"]},
+              {"name": "FIXME", "labels": ["bug"]},
+              {"name": "HACK", "labels": ["technical-debt"]}
+            ]
