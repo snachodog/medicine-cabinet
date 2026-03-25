@@ -1,20 +1,25 @@
 # backend/models.py
 # -----------------
 # SQLAlchemy models for MVP entities
-# TODO: Separate the User model into Account (login credentials) and Person (whose meds
-# are tracked). A household may have one Account but multiple Persons. Add an Account
-# model with hashed_password and a one-to-many relationship to Person. Migrate existing
-# User records to Person and create Alembic migrations for the change.
 # TODO: Add an AuditLog model to record create/update/delete events with entity_type,
 # entity_id, action, changed_by, and timestamp. Wire it into CRUD operations so all
 # changes are traceable.
 
-from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 
-class User(Base):
-    __tablename__ = "users"
+
+class Account(Base):
+    __tablename__ = "accounts"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+
+class Person(Base):
+    __tablename__ = "persons"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True)
@@ -22,7 +27,7 @@ class User(Base):
     medical_conditions = Column(Text)
     emergency_contact = Column(String)
 
-    prescriptions = relationship("Prescription", back_populates="user")
+    prescriptions = relationship("Prescription", back_populates="person")
 
 
 class Medication(Base):
@@ -43,7 +48,7 @@ class Prescription(Base):
     __tablename__ = "prescriptions"
     id = Column(Integer, primary_key=True, index=True)
     medication_id = Column(Integer, ForeignKey("medications.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
+    person_id = Column(Integer, ForeignKey("persons.id"))
     date_prescribed = Column(Date)
     date_filled = Column(Date)
     refills_remaining = Column(Integer)
@@ -51,7 +56,7 @@ class Prescription(Base):
     status = Column(String, default="active")
     notes = Column(Text)
 
-    user = relationship("User", back_populates="prescriptions")
+    person = relationship("Person", back_populates="prescriptions")
     medication = relationship("Medication", back_populates="prescriptions")
 
 
