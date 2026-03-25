@@ -1,17 +1,18 @@
 // frontend/src/App.jsx
 // TODO: Add a Dashboard page as the default route showing expiring-soon prescriptions,
 // low-stock consumables, and recent activity. Add a /dashboard route and nav link.
-// TODO: Add route-level authentication guards. Redirect unauthenticated users to /login.
-// All routes except /login should require a valid session.
 import React, { useState } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Users from './pages/Users';
 import Medications from './pages/Medications';
 import Prescriptions from './pages/Prescriptions';
 import Consumables from './pages/Consumables';
+import Login from './pages/Login';
 
 const NAV_LINKS = [
-  { to: '/users', label: 'People' },
+  { to: '/persons', label: 'People' },
   { to: '/medications', label: 'Medications' },
   { to: '/prescriptions', label: 'Prescriptions' },
   { to: '/consumables', label: 'Consumables' },
@@ -31,7 +32,8 @@ function NavLink({ to, label, onClick }) {
   );
 }
 
-function App() {
+function AppShell() {
+  const { account, logout } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
 
   return (
@@ -45,6 +47,14 @@ function App() {
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-6">
             {NAV_LINKS.map(l => <NavLink key={l.to} {...l} />)}
+            {account && (
+              <button
+                onClick={logout}
+                className="text-gray-500 hover:text-red-600 text-sm transition-colors"
+              >
+                Sign out ({account.username})
+              </button>
+            )}
           </nav>
 
           {/* Hamburger button — mobile only */}
@@ -66,24 +76,41 @@ function App() {
             {NAV_LINKS.map(l => (
               <NavLink key={l.to} {...l} onClick={() => setNavOpen(false)} />
             ))}
+            {account && (
+              <button
+                onClick={() => { setNavOpen(false); logout(); }}
+                className="text-left text-red-500 hover:underline text-sm"
+              >
+                Sign out ({account.username})
+              </button>
+            )}
           </nav>
         )}
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6">
         <Routes>
-          <Route path="/users" element={<Users />} />
-          <Route path="/medications" element={<Medications />} />
-          <Route path="/prescriptions" element={<Prescriptions />} />
-          <Route path="/consumables" element={<Consumables />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/persons" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+          <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
+          <Route path="/prescriptions" element={<ProtectedRoute><Prescriptions /></ProtectedRoute>} />
+          <Route path="/consumables" element={<ProtectedRoute><Consumables /></ProtectedRoute>} />
           <Route path="/" element={
-            <div className="text-gray-500">
-              Select a section from the navigation above.
-            </div>
+            <ProtectedRoute>
+              <div className="text-gray-500">Select a section from the navigation above.</div>
+            </ProtectedRoute>
           } />
         </Routes>
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
   );
 }
 
