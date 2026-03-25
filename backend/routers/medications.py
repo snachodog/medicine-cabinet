@@ -1,8 +1,6 @@
 # backend/routers/medications.py
 # ------------------------------
-# TODO: Add a search query parameter to GET /medications. Accept an optional ?search=
-# string and filter results by name, brand_name, and category using SQLAlchemy ilike.
-# Update crud.get_medications to accept the search parameter.
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .. import crud, schemas, database
@@ -17,8 +15,10 @@ def create_medication(medication: schemas.MedicationCreate, db: Session = Depend
     return crud.create_medication(db=db, medication=medication)
 
 @router.get("/", response_model=list[schemas.Medication])
-def read_medications(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
-    return crud.get_medications(db, skip=skip, limit=limit)
+def read_medications(
+    skip: int = 0, limit: int = 100, search: Optional[str] = None, db: Session = Depends(database.get_db)
+):
+    return crud.get_medications(db, skip=skip, limit=limit, search=search)
 
 @router.get("/{medication_id}", response_model=schemas.Medication)
 def read_medication(medication_id: int, db: Session = Depends(database.get_db)):
