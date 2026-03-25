@@ -26,8 +26,25 @@ def upgrade() -> None:
         sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
     )
 
-    # Drop FK constraint on prescriptions.user_id before renaming
-    op.drop_constraint("prescriptions_user_id_fkey", "prescriptions", type_="foreignkey")
+    # Drop FK constraint on prescriptions.user_id before renaming.
+    # Use raw SQL with IF EXISTS to handle auto-generated constraint names safely.
+    op.execute("""
+        DO $$
+        DECLARE r RECORD;
+        BEGIN
+            SELECT tc.constraint_name INTO r
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+                ON tc.constraint_name = kcu.constraint_name
+            WHERE tc.table_name = 'prescriptions'
+              AND tc.constraint_type = 'FOREIGN KEY'
+              AND kcu.column_name = 'user_id'
+            LIMIT 1;
+            IF FOUND THEN
+                EXECUTE 'ALTER TABLE prescriptions DROP CONSTRAINT ' || r.constraint_name;
+            END IF;
+        END $$;
+    """)
 
     # Rename users table to persons
     op.rename_table("users", "persons")
