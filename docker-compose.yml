@@ -4,6 +4,7 @@ services:
   app:
     image: dogiakos/medicine-cabinet:latest
     container_name: medicine-cabinet
+    restart: always
     ports:
       - "8000:8000"
     environment:
