@@ -73,46 +73,6 @@ docker-compose exec backend alembic upgrade head
 
 ---
 
-## 📁 Project Structure
-
-```
-medicine-cabinet/
-├── backend/
-│   ├── alembic/                  # Database migrations
-│   │   └── versions/
-│   │       └── 0001_initial_schema.py
-│   ├── routers/                  # FastAPI route handlers
-│   │   ├── consumables.py
-│   │   ├── medications.py
-│   │   ├── prescriptions.py
-│   │   └── users.py
-│   ├── alembic.ini
-│   ├── crud.py                   # Database operations
-│   ├── database.py               # SQLAlchemy engine + session
-│   ├── main.py                   # App entry point, CORS, router registration
-│   ├── models.py                 # SQLAlchemy ORM models
-│   ├── requirements.txt
-│   ├── schemas.py                # Pydantic request/response schemas
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Consumables.jsx
-│   │   │   ├── Medications.jsx
-│   │   │   ├── Prescriptions.jsx
-│   │   │   └── Users.jsx
-│   │   ├── App.jsx
-│   │   └── index.jsx
-│   ├── package.json
-│   ├── vite.config.js
-│   └── Dockerfile
-├── .env.example                  # Copy to .env and fill in values
-├── docker-compose.yml
-└── README.md
-```
-
----
-
 ## 🗺️ Roadmap
 
 ### Phase 2 — Core UX
