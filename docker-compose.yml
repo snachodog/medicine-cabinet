@@ -35,9 +35,9 @@ services:
     container_name: medicabinet-db
     restart: always
     environment:
-      POSTGRES_USER: medicabinet
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: medicabinet_db
+      POSTGRES_USER: ${POSTGRES_USER:-medicabinet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-medicabinet_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
