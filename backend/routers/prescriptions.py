@@ -23,3 +23,19 @@ def read_prescription(prescription_id: int, db: Session = Depends(database.get_d
     if db_rx is None:
         raise HTTPException(status_code=404, detail="Prescription not found")
     return db_rx
+
+@router.put("/{prescription_id}", response_model=schemas.Prescription)
+def update_prescription(
+    prescription_id: int, prescription: schemas.PrescriptionUpdate, db: Session = Depends(database.get_db)
+):
+    db_rx = crud.update_prescription(db, prescription_id=prescription_id, prescription=prescription)
+    if db_rx is None:
+        raise HTTPException(status_code=404, detail="Prescription not found")
+    return db_rx
+
+@router.delete("/{prescription_id}", response_model=schemas.Prescription)
+def delete_prescription(prescription_id: int, db: Session = Depends(database.get_db)):
+    db_rx = crud.delete_prescription(db, prescription_id=prescription_id)
+    if db_rx is None:
+        raise HTTPException(status_code=404, detail="Prescription not found")
+    return db_rx
