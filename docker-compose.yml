@@ -1,11 +1,11 @@
 version: '3.9'
 
 services:
-  backend:
-    image: dogiakos/medicine-cabinet-backend:latest
-    container_name: medicabinet-backend
+  app:
+    image: dogiakos/medicine-cabinet:latest
+    container_name: medicine-cabinet
     ports:
-      - "8085:8000"
+      - "8000:8000"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-medicabinet}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -16,15 +16,9 @@ services:
     depends_on:
       - db
 
-  frontend:
-    image: dogiakos/medicine-cabinet-frontend:latest
-    container_name: medicabinet-frontend
-    ports:
-      - "5173:5173"
-
   db:
     image: postgres:15
-    container_name: medicabinet-db
+    container_name: medicine-cabinet-db
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-medicabinet}
