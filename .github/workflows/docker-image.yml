@@ -27,17 +27,23 @@ jobs:
       - name: Build backend Docker image
         run: |
           docker build ./backend --file ./backend/Dockerfile \
-            --tag medicine-cabinet-backend:${{ github.sha }}
+            --tag ${{ vars.DOCKER_USERNAME }}/medicine-cabinet-backend:${{ github.sha }} \
+            --tag ${{ vars.DOCKER_USERNAME }}/medicine-cabinet-backend:latest
 
       - name: Build frontend Docker image
         run: |
           docker build ./frontend --file ./frontend/Dockerfile \
-            --tag medicine-cabinet-frontend:${{ github.sha }}
+            --tag ${{ vars.DOCKER_USERNAME }}/medicine-cabinet-frontend:${{ github.sha }} \
+            --tag ${{ vars.DOCKER_USERNAME }}/medicine-cabinet-frontend:latest
 
-      # Uncomment below to push images to Docker Hub once registry is configured
-      #- name: Push backend image
-      #  if: github.event_name == 'push'
-      #  run: docker push medicine-cabinet-backend:${{ github.sha }}
-      #- name: Push frontend image
-      #  if: github.event_name == 'push'
-      #  run: docker push medicine-cabinet-frontend:${{ github.sha }}
+      - name: Push backend image
+        if: github.event_name == 'push'
+        run: |
+          docker push ${{ vars.DOCKER_USERNAME }}/medicine-cabinet-backend:${{ github.sha }}
+          docker push ${{ vars.DOCKER_USERNAME }}/medicine-cabinet-backend:latest
+
+      - name: Push frontend image
+        if: github.event_name == 'push'
+        run: |
+          docker push ${{ vars.DOCKER_USERNAME }}/medicine-cabinet-frontend:${{ github.sha }}
+          docker push ${{ vars.DOCKER_USERNAME }}/medicine-cabinet-frontend:latest
