@@ -1,9 +1,6 @@
 # backend/main.py
 # --------------
 # FastAPI entry point
-# TODO: Implement JWT authentication. Add a /auth/login endpoint that returns a signed
-# JWT, and a /auth/me endpoint. Use python-jose and passlib[bcrypt]. Protect all
-# existing routers with an OAuth2PasswordBearer dependency.
 # TODO: Add email notification support for refill reminders and expiration alerts.
 # Use a background task or APScheduler to send warnings 7 and 30 days before
 # prescription expiration_date. Consider fastapi-mail for SMTP integration.
@@ -12,7 +9,8 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import users, medications, prescriptions, consumables
+from .routers import persons, medications, prescriptions, consumables
+from .routers import auth as auth_router
 
 
 app = FastAPI()
@@ -20,13 +18,14 @@ app = FastAPI()
 # CORS settings for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://medicabinet-frontend:5173"],  # Allow both host and container URLs
+    allow_origins=["http://localhost:5173", "http://medicabinet-frontend:5173"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
-app.include_router(users.router)
+app.include_router(auth_router.router)
+app.include_router(persons.router)
 app.include_router(medications.router)
 app.include_router(prescriptions.router)
 app.include_router(consumables.router)

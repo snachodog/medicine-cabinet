@@ -6,29 +6,56 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date
 
-class UserBase(BaseModel):
+
+# Account schemas
+
+class AccountCreate(BaseModel):
+    username: str
+    password: str
+
+class AccountResponse(BaseModel):
+    id: int
+    username: str
+    is_active: bool
+
+    class Config:
+        orm_mode = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+
+# Person schemas (formerly User)
+
+class PersonBase(BaseModel):
     name: str
     email: Optional[str]
     allergies: Optional[str]
     medical_conditions: Optional[str]
     emergency_contact: Optional[str]
 
-class UserCreate(UserBase):
+class PersonCreate(PersonBase):
     pass
 
-class UserUpdate(BaseModel):
+class PersonUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
     allergies: Optional[str] = None
     medical_conditions: Optional[str] = None
     emergency_contact: Optional[str] = None
 
-class User(UserBase):
+class Person(PersonBase):
     id: int
 
     class Config:
         orm_mode = True
 
+
+# Medication schemas
 
 class MedicationBase(BaseModel):
     name: str
@@ -58,9 +85,11 @@ class Medication(MedicationBase):
         orm_mode = True
 
 
+# Prescription schemas
+
 class PrescriptionBase(BaseModel):
     medication_id: int
-    user_id: int
+    person_id: int
     date_prescribed: Optional[date]
     date_filled: Optional[date]
     refills_remaining: Optional[int]
@@ -73,7 +102,7 @@ class PrescriptionCreate(PrescriptionBase):
 
 class PrescriptionUpdate(BaseModel):
     medication_id: Optional[int] = None
-    user_id: Optional[int] = None
+    person_id: Optional[int] = None
     date_prescribed: Optional[date] = None
     date_filled: Optional[date] = None
     refills_remaining: Optional[int] = None
@@ -87,6 +116,8 @@ class Prescription(PrescriptionBase):
     class Config:
         orm_mode = True
 
+
+# Consumable schemas
 
 class ConsumableBase(BaseModel):
     name: str
