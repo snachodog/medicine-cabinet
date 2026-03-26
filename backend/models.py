@@ -28,6 +28,7 @@ class Person(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    allergies = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
 
     account_access = relationship("AccountPersonAccess", back_populates="person")
