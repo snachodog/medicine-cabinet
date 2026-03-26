@@ -313,6 +313,13 @@ function MedicationsTab() {
     loadMeds();
   }
 
+  async function deleteMed(m) {
+    if (!confirm(`Permanently delete "${m.name}"? This cannot be undone.`)) return;
+    await axios.delete(`/api/medications/${m.id}`);
+    setModal(null);
+    loadMeds();
+  }
+
   return (
     <div className="space-y-4">
       {/* Person selector */}
@@ -408,11 +415,21 @@ function MedicationsTab() {
             <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
           </Field>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setModal(null)} className="px-4 py-2 text-sm text-gray-600">Cancel</button>
-            <button onClick={save} disabled={saving || !form.name.trim()} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50">
-              {saving ? 'Saving…' : 'Save'}
-            </button>
+          <div className="flex justify-between items-center pt-2">
+            {modal !== 'add' && (
+              <button
+                onClick={() => deleteMed(modal)}
+                className="px-4 py-2 text-sm text-red-500 hover:text-red-700"
+              >
+                Delete permanently
+              </button>
+            )}
+            <div className="flex gap-3 ml-auto">
+              <button onClick={() => setModal(null)} className="px-4 py-2 text-sm text-gray-600">Cancel</button>
+              <button onClick={save} disabled={saving || !form.name.trim()} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50">
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
           </div>
         </div>
       </Modal>
