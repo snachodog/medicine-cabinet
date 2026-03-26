@@ -1,182 +1,316 @@
 # backend/crud.py
-# ---------------
-# CRUD operations for MediCabinet entities
+from datetime import date, datetime, timedelta
+from typing import List, Optional
 
-from typing import Optional
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
+
 from . import models, schemas
 
 
-# Account CRUD
+# ── Account ───────────────────────────────────────────────────────────────────
 
 def get_account_by_username(db: Session, username: str):
     return db.query(models.Account).filter(models.Account.username == username).first()
 
 def create_account(db: Session, username: str, hashed_password: str):
-    db_account = models.Account(username=username, hashed_password=hashed_password)
-    db.add(db_account)
+    account = models.Account(username=username, hashed_password=hashed_password)
+    db.add(account)
     db.commit()
-    db.refresh(db_account)
-    return db_account
+    db.refresh(account)
+    return account
 
 
-# Person CRUD (formerly User)
+# ── Person ────────────────────────────────────────────────────────────────────
 
-def create_person(db: Session, person: schemas.PersonCreate):
-    db_person = models.Person(**person.dict())
-    db.add(db_person)
+def create_person(db: Session, payload: schemas.PersonCreate):
+    person = models.Person(**payload.dict())
+    db.add(person)
     db.commit()
-    db.refresh(db_person)
-    return db_person
-
-def get_persons(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Person).offset(skip).limit(limit).all()
+    db.refresh(person)
+    return person
 
 def get_person(db: Session, person_id: int):
     return db.query(models.Person).filter(models.Person.id == person_id).first()
 
-def update_person(db: Session, person_id: int, person: schemas.PersonUpdate):
-    db_person = db.query(models.Person).filter(models.Person.id == person_id).first()
-    if db_person is None:
+def get_persons(db: Session):
+    return db.query(models.Person).order_by(models.Person.name).all()
+
+def update_person(db: Session, person_id: int, payload: schemas.PersonUpdate):
+    person = db.query(models.Person).filter(models.Person.id == person_id).first()
+    if person is None:
         return None
-    for field, value in person.dict(exclude_unset=True).items():
-        setattr(db_person, field, value)
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(person, field, value)
     db.commit()
-    db.refresh(db_person)
-    return db_person
+    db.refresh(person)
+    return person
 
 def delete_person(db: Session, person_id: int):
-    db_person = db.query(models.Person).filter(models.Person.id == person_id).first()
-    if db_person is None:
+    person = db.query(models.Person).filter(models.Person.id == person_id).first()
+    if person is None:
         return None
-    db.delete(db_person)
+    db.delete(person)
     db.commit()
-    return db_person
+    return person
 
 
-# Medication CRUD
+# ── Account–Person access ─────────────────────────────────────────────────────
 
-def create_medication(db: Session, medication: schemas.MedicationCreate):
-    db_med = models.Medication(**medication.dict())
-    db.add(db_med)
+def get_accessible_persons(db: Session, account_id: int) -> List[models.Person]:
+    return (
+        db.query(models.Person)
+        .join(models.AccountPersonAccess)
+        .filter(models.AccountPersonAccess.account_id == account_id)
+        .order_by(models.Person.name)
+        .all()
+    )
+
+def grant_access(db: Session, account_id: int, person_id: int):
+    existing = db.query(models.AccountPersonAccess).filter_by(
+        account_id=account_id, person_id=person_id
+    ).first()
+    if existing:
+        return existing
+    link = models.AccountPersonAccess(account_id=account_id, person_id=person_id)
+    db.add(link)
     db.commit()
-    db.refresh(db_med)
-    return db_med
+    return link
 
-def get_medications(db: Session, skip: int = 0, limit: int = 100, search: Optional[str] = None):
-    query = db.query(models.Medication)
-    if search:
-        term = f"%{search}%"
-        query = query.filter(or_(
-            models.Medication.name.ilike(term),
-            models.Medication.brand_name.ilike(term),
-            models.Medication.category.ilike(term),
-        ))
-    return query.offset(skip).limit(limit).all()
+def revoke_access(db: Session, account_id: int, person_id: int):
+    link = db.query(models.AccountPersonAccess).filter_by(
+        account_id=account_id, person_id=person_id
+    ).first()
+    if link:
+        db.delete(link)
+        db.commit()
+
+def account_can_access_person(db: Session, account_id: int, person_id: int) -> bool:
+    return db.query(models.AccountPersonAccess).filter_by(
+        account_id=account_id, person_id=person_id
+    ).first() is not None
+
+
+# ── Medication Catalog ────────────────────────────────────────────────────────
+
+def search_catalog(db: Session, q: Optional[str] = None):
+    query = db.query(models.MedicationCatalog).order_by(models.MedicationCatalog.name)
+    if q:
+        query = query.filter(models.MedicationCatalog.name.ilike(f"%{q}%"))
+    return query.all()
+
+def get_catalog_entry(db: Session, catalog_id: int):
+    return db.query(models.MedicationCatalog).filter(
+        models.MedicationCatalog.id == catalog_id
+    ).first()
+
+
+# ── Medication ────────────────────────────────────────────────────────────────
+
+def create_medication(db: Session, payload: schemas.MedicationCreate):
+    med = models.Medication(**payload.dict())
+    db.add(med)
+    db.commit()
+    db.refresh(med)
+    return med
 
 def get_medication(db: Session, medication_id: int):
     return db.query(models.Medication).filter(models.Medication.id == medication_id).first()
 
-def update_medication(db: Session, medication_id: int, medication: schemas.MedicationUpdate):
-    db_med = db.query(models.Medication).filter(models.Medication.id == medication_id).first()
-    if db_med is None:
+def get_medications_for_person(db: Session, person_id: int, active_only: bool = True):
+    q = db.query(models.Medication).filter(models.Medication.person_id == person_id)
+    if active_only:
+        q = q.filter(models.Medication.is_active == True)
+    return q.order_by(models.Medication.schedule, models.Medication.name).all()
+
+def update_medication(db: Session, medication_id: int, payload: schemas.MedicationUpdate):
+    med = db.query(models.Medication).filter(models.Medication.id == medication_id).first()
+    if med is None:
         return None
-    for field, value in medication.dict(exclude_unset=True).items():
-        setattr(db_med, field, value)
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(med, field, value)
     db.commit()
-    db.refresh(db_med)
-    return db_med
+    db.refresh(med)
+    return med
 
 def delete_medication(db: Session, medication_id: int):
-    db_med = db.query(models.Medication).filter(models.Medication.id == medication_id).first()
-    if db_med is None:
+    med = db.query(models.Medication).filter(models.Medication.id == medication_id).first()
+    if med is None:
         return None
-    db.delete(db_med)
+    db.delete(med)
     db.commit()
-    return db_med
+    return med
 
 
-# Prescription CRUD
+# ── Prescription ──────────────────────────────────────────────────────────────
 
-def create_prescription(db: Session, prescription: schemas.PrescriptionCreate):
-    db_rx = models.Prescription(**prescription.dict())
-    db.add(db_rx)
+def create_prescription(db: Session, payload: schemas.PrescriptionCreate):
+    rx = models.Prescription(**payload.dict())
+    db.add(rx)
     db.commit()
-    db.refresh(db_rx)
-    return db_rx
-
-def get_prescriptions(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Prescription).offset(skip).limit(limit).all()
+    db.refresh(rx)
+    return rx
 
 def get_prescription(db: Session, prescription_id: int):
-    return db.query(models.Prescription).filter(models.Prescription.id == prescription_id).first()
-
-def update_prescription(
-    db: Session, prescription_id: int, prescription: schemas.PrescriptionUpdate
-):
-    db_rx = db.query(models.Prescription).filter(
+    return db.query(models.Prescription).filter(
         models.Prescription.id == prescription_id
     ).first()
-    if db_rx is None:
+
+def get_prescription_for_medication(db: Session, medication_id: int):
+    return db.query(models.Prescription).filter(
+        models.Prescription.medication_id == medication_id
+    ).first()
+
+def update_prescription(db: Session, prescription_id: int, payload: schemas.PrescriptionUpdate):
+    rx = db.query(models.Prescription).filter(
+        models.Prescription.id == prescription_id
+    ).first()
+    if rx is None:
         return None
-    for field, value in prescription.dict(exclude_unset=True).items():
-        setattr(db_rx, field, value)
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(rx, field, value)
     db.commit()
-    db.refresh(db_rx)
-    return db_rx
+    db.refresh(rx)
+    return rx
 
 def delete_prescription(db: Session, prescription_id: int):
-    db_rx = db.query(models.Prescription).filter(
+    rx = db.query(models.Prescription).filter(
         models.Prescription.id == prescription_id
     ).first()
-    if db_rx is None:
+    if rx is None:
         return None
-    db.delete(db_rx)
+    db.delete(rx)
     db.commit()
-    return db_rx
+    return rx
 
 
-# Consumable CRUD
+# ── Fill ──────────────────────────────────────────────────────────────────────
 
-def create_consumable(db: Session, consumable: schemas.ConsumableCreate):
-    db_item = models.Consumable(**consumable.dict())
-    db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
-    return db_item
+def log_fill(db: Session, prescription_id: int, payload: schemas.FillCreate, account_id: int):
+    fill = models.Fill(
+        prescription_id=prescription_id,
+        logged_by_account_id=account_id,
+        **payload.dict(),
+    )
+    db.add(fill)
 
-def get_consumables(db: Session, skip: int = 0, limit: int = 100, search: Optional[str] = None):
-    query = db.query(models.Consumable)
-    if search:
-        term = f"%{search}%"
-        query = query.filter(or_(
-            models.Consumable.name.ilike(term),
-            models.Consumable.category.ilike(term),
-        ))
-    return query.offset(skip).limit(limit).all()
-
-def get_consumable(db: Session, consumable_id: int):
-    return db.query(models.Consumable).filter(models.Consumable.id == consumable_id).first()
-
-def update_consumable(db: Session, consumable_id: int, consumable: schemas.ConsumableUpdate):
-    db_item = db.query(models.Consumable).filter(
-        models.Consumable.id == consumable_id
+    # Update prescription: decrement scripts_remaining, set last_fill_date,
+    # compute next_eligible_date from days_supply.
+    rx = db.query(models.Prescription).filter(
+        models.Prescription.id == prescription_id
     ).first()
-    if db_item is None:
-        return None
-    for field, value in consumable.dict(exclude_unset=True).items():
-        setattr(db_item, field, value)
-    db.commit()
-    db.refresh(db_item)
-    return db_item
+    if rx:
+        if rx.scripts_remaining > 0:
+            rx.scripts_remaining -= 1
+        rx.last_fill_date = payload.fill_date
+        rx.next_eligible_date = payload.fill_date + timedelta(days=rx.days_supply)
 
-def delete_consumable(db: Session, consumable_id: int):
-    db_item = db.query(models.Consumable).filter(
-        models.Consumable.id == consumable_id
-    ).first()
-    if db_item is None:
-        return None
-    db.delete(db_item)
     db.commit()
-    return db_item
+    db.refresh(fill)
+    return fill
+
+def get_fills(db: Session, prescription_id: int):
+    return (
+        db.query(models.Fill)
+        .filter(models.Fill.prescription_id == prescription_id)
+        .order_by(models.Fill.fill_date.desc())
+        .all()
+    )
+
+
+# ── Dose Log ──────────────────────────────────────────────────────────────────
+
+def log_dose(db: Session, payload: schemas.DoseLogCreate, account_id: int):
+    taken_at = payload.taken_at or datetime.utcnow()
+    entry = models.DoseLog(
+        medication_id=payload.medication_id,
+        person_id=payload.person_id,
+        logged_by_account_id=account_id,
+        taken_at=taken_at,
+        notes=payload.notes,
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+def get_dose_logs(
+    db: Session,
+    person_id: int,
+    medication_id: Optional[int] = None,
+    since: Optional[date] = None,
+    limit: int = 100,
+):
+    q = db.query(models.DoseLog).filter(models.DoseLog.person_id == person_id)
+    if medication_id:
+        q = q.filter(models.DoseLog.medication_id == medication_id)
+    if since:
+        q = q.filter(models.DoseLog.taken_at >= datetime.combine(since, datetime.min.time()))
+    return q.order_by(models.DoseLog.taken_at.desc()).limit(limit).all()
+
+def get_dose_log(db: Session, dose_log_id: int):
+    return db.query(models.DoseLog).filter(models.DoseLog.id == dose_log_id).first()
+
+def delete_dose_log(db: Session, dose_log_id: int):
+    entry = db.query(models.DoseLog).filter(models.DoseLog.id == dose_log_id).first()
+    if entry is None:
+        return None
+    db.delete(entry)
+    db.commit()
+    return entry
+
+def get_streak(db: Session, person_id: int, medication_id: int) -> int:
+    """Return the current consecutive-day streak for a person/medication."""
+    logs = (
+        db.query(models.DoseLog)
+        .filter(
+            models.DoseLog.person_id == person_id,
+            models.DoseLog.medication_id == medication_id,
+        )
+        .order_by(models.DoseLog.taken_at.desc())
+        .all()
+    )
+    if not logs:
+        return 0
+
+    seen_dates = sorted(
+        {entry.taken_at.date() for entry in logs},
+        reverse=True,
+    )
+
+    streak = 0
+    expected = date.today()
+    for d in seen_dates:
+        if d == expected or d == expected - timedelta(days=1) and streak == 0:
+            # Allow today or yesterday to start the streak
+            streak += 1
+            expected = d - timedelta(days=1)
+        elif d == expected:
+            streak += 1
+            expected = d - timedelta(days=1)
+        else:
+            break
+    return streak
+
+
+# ── Notification Preferences ──────────────────────────────────────────────────
+
+def get_or_create_notification_pref(db: Session, account_id: int):
+    pref = db.query(models.NotificationPreference).filter(
+        models.NotificationPreference.account_id == account_id
+    ).first()
+    if pref is None:
+        pref = models.NotificationPreference(account_id=account_id)
+        db.add(pref)
+        db.commit()
+        db.refresh(pref)
+    return pref
+
+def update_notification_pref(
+    db: Session, account_id: int, payload: schemas.NotificationPrefUpdate
+):
+    pref = get_or_create_notification_pref(db, account_id)
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(pref, field, value)
+    db.commit()
+    db.refresh(pref)
+    return pref
