@@ -14,6 +14,7 @@ class Account(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, server_default="true", nullable=False)
+    email = Column(String, nullable=True)
 
     person_access = relationship("AccountPersonAccess", back_populates="account")
     dose_logs = relationship("DoseLog", back_populates="logged_by")
@@ -91,6 +92,7 @@ class Prescription(Base):
     scripts_remaining = Column(Integer, nullable=False, server_default="0")
     last_fill_date = Column(Date, nullable=True)
     next_eligible_date = Column(Date, nullable=True)
+    expiration_date = Column(Date, nullable=True)
     co_pay = Column(Numeric(8, 2), nullable=True)
     notes = Column(Text, nullable=True)
 
@@ -154,6 +156,7 @@ class NotificationPreference(Base):
     refill_reminder_days = Column(Integer, server_default="7", nullable=False)
     scripts_low_threshold = Column(Integer, server_default="2", nullable=False)
     calendar_token = Column(String, nullable=True, index=True)
+    email_enabled = Column(Boolean, server_default="false", nullable=False)
 
     account = relationship("Account", back_populates="notification_preference")
 
