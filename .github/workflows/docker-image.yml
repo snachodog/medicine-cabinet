@@ -19,7 +19,7 @@ jobs:
 
       - name: Log in to DockerHub
         if: github.event_name == 'push'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v4
         with:
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
