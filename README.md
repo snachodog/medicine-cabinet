@@ -1,37 +1,73 @@
-# 🗃️ Medicine Cabinet
+# Medicine Cabinet
 
-**Medicine Cabinet** is a self-hosted web app for tracking your household's medications, prescriptions, and first-aid supplies — running entirely on your own server.
+**Medicine Cabinet** is a self-hosted web app for tracking your household's medications, prescriptions, and dose history — running entirely on your own server.
 
-Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats prescription medications as trackable assets assigned to people, and general supplies as consumables. Built for families, caregivers, or anyone managing health items at home.
-
----
-
-## ✨ Current Features
-
-- **Full medication management** — create, view, edit, and delete medications with name, dosage, form, category, and notes
-- **Prescription tracking** — link prescriptions to people and medications; track fill dates, refills remaining, expiration dates, and status
-- **Consumable inventory** — track first-aid supplies and OTC items with quantities and reorder thresholds
-- **People profiles** — store allergy information, medical conditions, and emergency contacts per household member
-- **Authentication** — JWT-based login with user accounts; all data protected behind authentication
-- **REST API** — all data accessible via a documented FastAPI backend (`/api/docs` for interactive Swagger UI)
+Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medications as trackable assets assigned to people. Built for families, caregivers, or anyone managing health items at home.
 
 ---
 
-## 🧪 Tech Stack
+## Current Features
 
-| Layer        | Technology                              |
-|--------------|-----------------------------------------|
-| Frontend     | React 18 + React Router + Tailwind CSS  |
-| Backend      | FastAPI (Python 3.11)                   |
-| ORM          | SQLAlchemy                              |
-| Migrations   | Alembic (runs automatically on startup) |
-| Database     | PostgreSQL 15                           |
-| Self-hosting | Docker + Docker Compose                 |
-| Image        | `dogiakos/medicine-cabinet:latest`      |
+### Household & Profiles
+
+- **Multi-person households** — manage medications for multiple people under one account
+- **Household sharing** — grant other accounts access to a person's records by username; revoke at any time
+- **Person profiles** — store allergies and notes per household member
+- **Allergy tracking** — allergy information is prominently displayed and exported to PDF
+
+### Medications & Prescriptions
+
+- **Medication management** — create, edit, and delete medications with name, dosage, form, type (OTC/supplement/Rx/Schedule II), schedule, and notes
+- **Prescription tracking** — link prescriptions to people; track fill dates, scripts remaining, next eligible date, prescriber, pharmacy, and co-pay
+- **Dose logging** — record when doses are taken; view history per medication
+- **Medication catalog** — search a built-in drug reference to pre-fill medication fields by name or barcode (UPC)
+
+### Contacts
+
+- **Provider directory** — save prescribers with specialty, phone, and address; autofills prescription forms
+- **Pharmacy directory** — save pharmacies with contact info; autofills prescription forms
+
+### Exports & Integrations
+
+- **PDF medication report** — generate a printable report per person listing all active medications, suitable for handing to a provider or emergency services
+- **Calendar feed (ICS)** — subscribe to a per-account `.ics` feed in any calendar app (Google Calendar, Apple Calendar, Outlook) with pickup events and refill reminders; or download a one-time snapshot
+
+### Notifications & Reminders
+
+- **Refill reminders** — configurable advance notice (days) before a prescription's next eligible pickup date
+- **Expiration highlighting** — prescriptions approaching or past expiration are flagged in the UI
+
+### Security & Administration
+
+- **httpOnly cookie auth** — JWT stored in a secure httpOnly SameSite=Lax cookie; never exposed to JavaScript
+- **Token revocation** — logout invalidates the session token immediately
+- **Password policy** — minimum 8 characters with uppercase, lowercase, digit, and special character required at registration
+- **Rate limiting** — login and registration endpoints are rate-limited to prevent brute force
+- **Audit log** — all create/update/delete events are logged and visible to household members
+- **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` applied on every response
+
+### Developer / API
+
+- **REST API** — all data accessible via the FastAPI backend; interactive docs at `/api/docs`
+- **Alembic migrations** — schema migrations run automatically on startup; no manual steps
 
 ---
 
-## 🚀 Getting Started
+## Tech Stack
+
+| Layer        | Technology                             |
+|--------------|----------------------------------------|
+| Frontend     | React 18 + React Router + Tailwind CSS |
+| Backend      | FastAPI (Python 3.11)                  |
+| ORM          | SQLAlchemy                             |
+| Migrations   | Alembic (auto-runs on startup)         |
+| Database     | PostgreSQL 15                          |
+| Self-hosting | Docker + Docker Compose                |
+| Image        | `dogiakos/medicine-cabinet:latest`     |
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
@@ -43,7 +79,7 @@ Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats prescripti
 curl -O https://raw.githubusercontent.com/snachodog/medicine-cabinet/main/docker-compose.yml
 ```
 
-Or clone the repo if you prefer:
+Or clone the repo:
 
 ```bash
 git clone https://github.com/snachodog/medicine-cabinet.git
@@ -79,7 +115,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 docker compose up -d
 ```
 
-The app container pulls from `dogiakos/medicine-cabinet:latest`. Database migrations run automatically on startup — no manual steps required.
+The app container pulls from `dogiakos/medicine-cabinet:latest`. Database migrations run automatically on startup.
 
 ### 4. Open the app
 
@@ -97,51 +133,38 @@ docker compose up -d
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
-### Phase 2 — Core UX ✅
+### In progress / next up
 
-- [x] Edit and delete UI controls on all list views
-- [x] Expiration date highlighting (yellow = expiring soon, red = expired)
-- [x] Display medication name and person name in prescription list
-- [x] Search and filter on medication and consumable lists
-- [x] Client-side form validation with inline error messages
-- [x] Mobile-responsive layout
+- [ ] **Email notifications** — refill reminders and expiration alerts delivered by email (#13)
+- [ ] **Expanded scheduling options** — support for every-N-days, weekly, and PRN dose schedules beyond morning/evening/as-needed (#21)
+- [ ] **Remove Schedule II from medication type list** — reconsider type taxonomy (#28)
 
-### Phase 3 — Authentication ✅
+### Future ideas
 
-- [x] Separate login accounts from tracked people (one account, multiple profiles)
-- [x] JWT-based login/logout
-- [x] Route-level authentication guards
-
-### Phase 4 — Notifications & Dashboard
-
-- [ ] Dashboard: expiring prescriptions, low-stock consumables, recent activity
-- [ ] Email/notification reminders for refills and approaching expiration dates
-
-### Phase 5 — Advanced Features
-
-- [ ] Barcode scanning to pre-fill medication fields
-- [ ] CSV import/export for bulk management
-- [ ] Audit log of all create/update/delete events
-- [ ] Doctor & pharmacy directory
-- [ ] Mobile PWA / API support for mobile clients
+- [ ] CSV import/export for bulk medication management
+- [ ] Dashboard view — expiring prescriptions, upcoming refills, recent activity at a glance
+- [ ] Mobile PWA — offline-capable client for logging doses on the go
+- [ ] Barcode scanning — camera-based UPC lookup to pre-fill medication fields in the UI
 
 ---
 
-## 🛡️ Privacy & Security
+## Privacy & Security
 
 Medicine Cabinet is designed to be **self-hosted** so sensitive health data stays on your own machine or server and never passes through a third-party service. You control the database, the backups, and the access.
 
+Tokens are stored in httpOnly cookies and never accessible to JavaScript. All data is scoped to authenticated accounts, and household sharing requires an explicit grant by an existing member.
+
 ---
 
-## 📜 License
+## License
 
 [MIT](LICENSE) — © 2025 Steven Dogiakos
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Snipe-IT](https://snipeitapp.com/) for the asset/consumable management model
 - The open-source community that makes self-hosting practical
