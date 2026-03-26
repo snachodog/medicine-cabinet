@@ -9,7 +9,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 from .routers import auth as auth_router
-from .routers import persons, medications, prescriptions, dose_logs, catalog, notifications, audit
+from .routers import persons, medications, prescriptions, dose_logs, catalog, notifications, audit, contacts, calendar
 from .limiter import limiter
 
 _frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
@@ -50,6 +50,8 @@ app.include_router(dose_logs.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")
+app.include_router(contacts.router, prefix="/api")
+app.include_router(calendar.router, prefix="/api")
 
 # Serve compiled frontend assets (JS/CSS bundles)
 _assets_dir = os.path.join(_frontend_dist, "assets")

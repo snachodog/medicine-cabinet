@@ -1,6 +1,6 @@
 # backend/models.py
 from sqlalchemy import (
-    Column, Integer, String, Boolean, Text, Date, DateTime, ForeignKey
+    Column, Integer, String, Boolean, Text, Date, DateTime, ForeignKey, Numeric
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -21,6 +21,8 @@ class Account(Base):
     notification_preference = relationship(
         "NotificationPreference", back_populates="account", uselist=False
     )
+    providers = relationship("Provider", back_populates="account")
+    pharmacies = relationship("Pharmacy", back_populates="account")
 
 
 class Person(Base):
@@ -89,6 +91,7 @@ class Prescription(Base):
     scripts_remaining = Column(Integer, nullable=False, server_default="0")
     last_fill_date = Column(Date, nullable=True)
     next_eligible_date = Column(Date, nullable=True)
+    co_pay = Column(Numeric(8, 2), nullable=True)
     notes = Column(Text, nullable=True)
 
     medication = relationship("Medication", back_populates="prescription")
@@ -133,9 +136,9 @@ class AuditLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
-    entity_type = Column(String, nullable=False)   # person | medication | prescription | fill | dose_log
+    entity_type = Column(String, nullable=False)
     entity_id = Column(Integer, nullable=False)
-    action = Column(String, nullable=False)        # create | update | delete
+    action = Column(String, nullable=False)
     detail = Column(Text, nullable=True)
 
     account = relationship("Account")
@@ -150,5 +153,35 @@ class NotificationPreference(Base):
     ntfy_token = Column(String, nullable=True)
     refill_reminder_days = Column(Integer, server_default="7", nullable=False)
     scripts_low_threshold = Column(Integer, server_default="2", nullable=False)
+    calendar_token = Column(String, nullable=True, index=True)
 
     account = relationship("Account", back_populates="notification_preference")
+
+
+class Provider(Base):
+    """A prescriber (doctor, NP, PA, etc.) saved to an account's contact list."""
+    __tablename__ = "providers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    specialty = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    address = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    account = relationship("Account", back_populates="providers")
+
+
+class Pharmacy(Base):
+    """A pharmacy saved to an account's contact list."""
+    __tablename__ = "pharmacies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)
+    phone = Column(String, nullable=True)
+    address = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    account = relationship("Account", back_populates="pharmacies")

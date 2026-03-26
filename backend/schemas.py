@@ -1,5 +1,6 @@
 # backend/schemas.py
 import re
+from decimal import Decimal
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import date, datetime
@@ -98,9 +99,9 @@ class MedicationCreate(BaseModel):
     person_id: int
     catalog_id: Optional[int] = None
     name: str = Field(..., max_length=200)
-    type: str = Field(..., max_length=50)    # otc | supplement | rx | schedule_ii
+    type: str = Field(..., max_length=50)
     dose_amount: Optional[str] = Field(None, max_length=100)
-    schedule: str = Field(..., max_length=50)  # morning | evening | as_needed
+    schedule: str = Field(..., max_length=50)
     notes: Optional[str] = Field(None, max_length=2000)
 
 class MedicationUpdate(BaseModel):
@@ -136,6 +137,7 @@ class PrescriptionCreate(BaseModel):
     scripts_remaining: int = 0
     last_fill_date: Optional[date] = None
     next_eligible_date: Optional[date] = None
+    co_pay: Optional[Decimal] = None
     notes: Optional[str] = Field(None, max_length=2000)
 
 class PrescriptionUpdate(BaseModel):
@@ -145,6 +147,7 @@ class PrescriptionUpdate(BaseModel):
     scripts_remaining: Optional[int] = None
     last_fill_date: Optional[date] = None
     next_eligible_date: Optional[date] = None
+    co_pay: Optional[Decimal] = None
     notes: Optional[str] = Field(None, max_length=2000)
 
 class PrescriptionResponse(BaseModel):
@@ -156,6 +159,7 @@ class PrescriptionResponse(BaseModel):
     scripts_remaining: int
     last_fill_date: Optional[date]
     next_eligible_date: Optional[date]
+    co_pay: Optional[Decimal]
     notes: Optional[str]
 
     class Config:
@@ -186,7 +190,7 @@ class FillResponse(BaseModel):
 class DoseLogCreate(BaseModel):
     medication_id: int
     person_id: int
-    taken_at: Optional[datetime] = None   # defaults to now() if omitted
+    taken_at: Optional[datetime] = None
     notes: Optional[str] = Field(None, max_length=2000)
 
 class DoseLogResponse(BaseModel):
@@ -201,7 +205,7 @@ class DoseLogResponse(BaseModel):
         orm_mode = True
 
 
-# ── Notification Preferences ──────────────────────────────────────────────────
+# ── Prescription with context (list endpoint) ─────────────────────────────────
 
 class PrescriptionWithContext(PrescriptionResponse):
     medication_name: str
@@ -212,6 +216,8 @@ class PrescriptionWithContext(PrescriptionResponse):
     class Config:
         orm_mode = True
 
+
+# ── Notification Preferences ──────────────────────────────────────────────────
 
 class NotificationPrefUpdate(BaseModel):
     ntfy_url: Optional[str] = Field(None, max_length=500)
@@ -226,6 +232,7 @@ class NotificationPrefResponse(BaseModel):
     ntfy_token: Optional[str]
     refill_reminder_days: int
     scripts_low_threshold: int
+    calendar_token: Optional[str]
 
     class Config:
         orm_mode = True
@@ -245,3 +252,65 @@ class AuditLogResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+# ── Provider ──────────────────────────────────────────────────────────────────
+
+class ProviderCreate(BaseModel):
+    name: str = Field(..., max_length=200)
+    specialty: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=50)
+    address: Optional[str] = Field(None, max_length=500)
+    notes: Optional[str] = Field(None, max_length=2000)
+
+class ProviderUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=200)
+    specialty: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=50)
+    address: Optional[str] = Field(None, max_length=500)
+    notes: Optional[str] = Field(None, max_length=2000)
+
+class ProviderResponse(BaseModel):
+    id: int
+    account_id: int
+    name: str
+    specialty: Optional[str]
+    phone: Optional[str]
+    address: Optional[str]
+    notes: Optional[str]
+
+    class Config:
+        orm_mode = True
+
+
+# ── Pharmacy ──────────────────────────────────────────────────────────────────
+
+class PharmacyCreate(BaseModel):
+    name: str = Field(..., max_length=200)
+    phone: Optional[str] = Field(None, max_length=50)
+    address: Optional[str] = Field(None, max_length=500)
+    notes: Optional[str] = Field(None, max_length=2000)
+
+class PharmacyUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=50)
+    address: Optional[str] = Field(None, max_length=500)
+    notes: Optional[str] = Field(None, max_length=2000)
+
+class PharmacyResponse(BaseModel):
+    id: int
+    account_id: int
+    name: str
+    phone: Optional[str]
+    address: Optional[str]
+    notes: Optional[str]
+
+    class Config:
+        orm_mode = True
+
+
+# ── Calendar feed ─────────────────────────────────────────────────────────────
+
+class CalendarTokenResponse(BaseModel):
+    token: str
+    subscribe_url: str
