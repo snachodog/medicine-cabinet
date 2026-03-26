@@ -4,7 +4,11 @@
   <head>
     <meta charset="UTF-8" />
     <title>Medicine Cabinet</title>
-    <!-- If you need custom meta tags, add them here -->
+    <script>
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

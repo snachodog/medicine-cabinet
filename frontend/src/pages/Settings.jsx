@@ -4,7 +4,12 @@ import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 
 const TABS = ['Persons', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Activity'];
-const SCHEDULES = ['morning', 'evening', 'as_needed'];
+const SCHEDULES = ['morning', 'twice_daily', 'evening', 'three_times_daily', 'every_other_day', 'weekly', 'monthly', 'as_needed'];
+const SCHEDULE_LABEL_MAP = {
+  morning: 'Morning', twice_daily: 'Twice Daily', evening: 'Evening',
+  three_times_daily: 'Three Times Daily', every_other_day: 'Every Other Day',
+  weekly: 'Weekly', monthly: 'Monthly', as_needed: 'As Needed',
+};
 const MED_TYPES  = ['otc', 'supplement', 'rx'];
 const TYPE_LABEL = { otc: 'OTC', supplement: 'Supplement', rx: 'Prescription' };
 
@@ -12,7 +17,7 @@ const TYPE_LABEL = { otc: 'OTC', supplement: 'Supplement', rx: 'Prescription' };
 function Field({ label, children }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{label}</label>
       {children}
     </div>
   );
@@ -21,7 +26,7 @@ function Input({ ...props }) {
   return (
     <input
       {...props}
-      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
     />
   );
 }
@@ -29,7 +34,7 @@ function Select({ children, ...props }) {
   return (
     <select
       {...props}
-      className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
     >
       {children}
     </select>
@@ -74,13 +79,13 @@ function SharingModal({ person, onClose }) {
     <Modal isOpen={true} onClose={onClose} title={`Sharing — ${person.name}`}>
       <div className="space-y-5">
         <div>
-          <p className="text-sm text-gray-500 mb-3">Accounts that can log doses for {person.name}:</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Accounts that can log doses for {person.name}:</p>
           <ul className="space-y-2">
             {accessList.map(entry => (
-              <li key={entry.account_id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                <span className="text-sm font-medium text-gray-700">{entry.username}</span>
+              <li key={entry.account_id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{entry.username}</span>
                 {entry.account_id === account?.id ? (
-                  <span className="text-xs text-gray-400">you</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">you</span>
                 ) : (
                   <button
                     onClick={() => removeUser(entry)}
@@ -95,7 +100,7 @@ function SharingModal({ person, onClose }) {
         </div>
 
         <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">Add a household member by username</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Add a household member by username</p>
           {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
           <div className="flex gap-2">
             <Input
@@ -167,7 +172,7 @@ function PersonsTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500">{persons.length} household member{persons.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{persons.length} household member{persons.length !== 1 ? 's' : ''}</p>
         <button onClick={openAdd} className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
           Add person
         </button>
@@ -175,17 +180,17 @@ function PersonsTab() {
 
       <ul className="space-y-2">
         {persons.map(p => (
-          <li key={p.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <li key={p.id} className="flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3">
             <div>
-              <p className="font-medium text-gray-800">{p.name}</p>
+              <p className="font-medium text-gray-800 dark:text-gray-100">{p.name}</p>
               {p.allergies && (
                 <p className="text-xs text-red-500 mt-0.5">Allergies: {p.allergies}</p>
               )}
-              {p.notes && <p className="text-xs text-gray-400">{p.notes}</p>}
+              {p.notes && <p className="text-xs text-gray-400 dark:text-gray-500">{p.notes}</p>}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setSharingFor(p)} className="text-sm text-gray-500 hover:text-blue-600 hover:underline">Sharing</button>
-              <a href={`/api/persons/${p.id}/export.pdf`} download className="text-sm text-gray-500 hover:text-green-600 hover:underline">PDF</a>
+              <button onClick={() => setSharingFor(p)} className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:underline">Sharing</button>
+              <a href={`/api/persons/${p.id}/export.pdf`} download className="text-sm text-gray-500 dark:text-gray-400 hover:text-green-600 hover:underline">PDF</a>
               <button onClick={() => openEdit(p)}      className="text-sm text-blue-600 hover:underline">Edit</button>
               <button onClick={() => del(p)}           className="text-sm text-red-500 hover:underline">Delete</button>
             </div>
@@ -331,7 +336,7 @@ function MedicationsTab() {
               key={p.id}
               onClick={() => setSelected(p.id)}
               className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                selectedPerson === p.id ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-600'
+                selectedPerson === p.id ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300'
               }`}
             >
               {p.name}
@@ -348,10 +353,10 @@ function MedicationsTab() {
 
       <ul className="space-y-2">
         {meds.map(m => (
-          <li key={m.id} className={`flex items-center justify-between border rounded-xl px-4 py-3 ${m.is_active ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
+          <li key={m.id} className={`flex items-center justify-between border rounded-xl px-4 py-3 ${m.is_active ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-100 dark:border-gray-700 opacity-60'}`}>
             <div>
-              <p className="font-medium text-gray-800">{m.name}</p>
-              <p className="text-xs text-gray-400">{TYPE_LABEL[m.type]} · {m.schedule} {m.dose_amount ? `· ${m.dose_amount}` : ''}</p>
+              <p className="font-medium text-gray-800 dark:text-gray-100">{m.name}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{TYPE_LABEL[m.type]} · {SCHEDULE_LABEL_MAP[m.schedule] ?? m.schedule} {m.dose_amount ? `· ${m.dose_amount}` : ''}</p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => openEdit(m)} className="text-sm text-blue-600 hover:underline">Edit</button>
@@ -376,15 +381,15 @@ function MedicationsTab() {
                   placeholder="Type to search…"
                 />
                 {catalog.length > 0 && (
-                  <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                  <ul className="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
                     {catalog.map(c => (
                       <li key={c.id}>
                         <button
                           onClick={() => selectCatalog(c)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex justify-between"
+                          className="w-full text-left px-3 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex justify-between"
                         >
                           <span>{c.name}</span>
-                          <span className="text-xs text-gray-400">{TYPE_LABEL[c.type]}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">{TYPE_LABEL[c.type]}</span>
                         </button>
                       </li>
                     ))}
@@ -405,7 +410,7 @@ function MedicationsTab() {
             </Field>
             <Field label="Schedule">
               <Select value={form.schedule} onChange={e => setForm(f => ({ ...f, schedule: e.target.value }))}>
-                {SCHEDULES.map(s => <option key={s} value={s}>{s}</option>)}
+                {SCHEDULES.map(s => <option key={s} value={s}>{SCHEDULE_LABEL_MAP[s]}</option>)}
               </Select>
             </Field>
           </div>
@@ -469,9 +474,7 @@ function PrescriptionsTab() {
         ps.map(p => axios.get(`/api/medications/person/${p.id}`, { params: { active_only: false } }))
       );
       const eligible = medArrays.flatMap((r, i) =>
-        r.data
-          .filter(m => m.type === 'rx' || m.type === 'schedule_ii')
-          .map(m => ({ ...m, person_name: ps[i].name, person_id: ps[i].id }))
+        r.data.map(m => ({ ...m, person_name: ps[i].name, person_id: ps[i].id }))
       );
       setAllMeds(eligible);
     } catch (e) {
@@ -562,7 +565,7 @@ function PrescriptionsTab() {
       {loadError && <p className="text-red-500 text-sm">{loadError}</p>}
 
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500">{prescriptions.length} prescription{prescriptions.length !== 1 ? 's' : ''} tracked</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{prescriptions.length} prescription{prescriptions.length !== 1 ? 's' : ''} tracked</p>
         <button onClick={openAdd} className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
           Add prescription
         </button>
@@ -570,12 +573,12 @@ function PrescriptionsTab() {
 
       <ul className="space-y-2">
         {prescriptions.map(rx => (
-          <li key={rx.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <li key={rx.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-0.5">{rx.person_name}</p>
-                <p className="font-medium text-gray-800">{rx.medication_name}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="font-medium text-gray-800 dark:text-gray-100">{rx.medication_name}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                   Scripts remaining: {rx.scripts_remaining} · {rx.days_supply}d supply
                   {rx.prescriber ? ` · ${rx.prescriber}` : ''}
                   {rx.co_pay != null ? ` · $${Number(rx.co_pay).toFixed(2)} co-pay` : ''}
@@ -597,8 +600,8 @@ function PrescriptionsTab() {
           {modal === 'add' && (
             <Field label="Medication">
               {allMeds.length === 0 ? (
-                <p className="text-sm text-amber-600 py-2">
-                  No Rx or Schedule II medications found. Add them in the Medications tab first.
+                <p className="text-sm text-amber-600 dark:text-amber-400 py-2">
+                  No medications found. Add them in the Medications tab first.
                 </p>
               ) : untracked.length === 0 ? (
                 <p className="text-sm text-gray-500 py-2">
@@ -636,15 +639,15 @@ function PrescriptionsTab() {
                 placeholder="Start typing to search saved providers…"
               />
               {providerSuggestions.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                <ul className="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
                   {providerSuggestions.map(p => (
                     <li key={p.id}>
                       <button
                         onMouseDown={() => { setForm(f => ({ ...f, prescriber: p.name })); setProviderSuggestions([]); }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex justify-between"
+                        className="w-full text-left px-3 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex justify-between"
                       >
                         <span>{p.name}</span>
-                        {p.specialty && <span className="text-xs text-gray-400">{p.specialty}</span>}
+                        {p.specialty && <span className="text-xs text-gray-400 dark:text-gray-500">{p.specialty}</span>}
                       </button>
                     </li>
                   ))}
@@ -661,15 +664,15 @@ function PrescriptionsTab() {
                 placeholder="Start typing to search saved pharmacies…"
               />
               {pharmacySuggestions.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                <ul className="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
                   {pharmacySuggestions.map(p => (
                     <li key={p.id}>
                       <button
                         onMouseDown={() => { setForm(f => ({ ...f, pharmacy: p.name })); setPharmacySuggestions([]); }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex justify-between"
+                        className="w-full text-left px-3 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex justify-between"
                       >
                         <span>{p.name}</span>
-                        {p.phone && <span className="text-xs text-gray-400">{p.phone}</span>}
+                        {p.phone && <span className="text-xs text-gray-400 dark:text-gray-500">{p.phone}</span>}
                       </button>
                     </li>
                   ))}
@@ -760,7 +763,7 @@ function NotificationsTab() {
   return (
     <div className="space-y-5 max-w-md">
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">ntfy push notifications</h3>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">ntfy push notifications</h3>
         <div className="space-y-3">
           <Field label="ntfy topic URL">
             <Input value={form.ntfy_url} onChange={e => setForm(f => ({ ...f, ntfy_url: e.target.value }))} placeholder="https://ntfy.sh/your-topic" />
@@ -772,7 +775,7 @@ function NotificationsTab() {
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Reminder thresholds</h3>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Reminder thresholds</h3>
         <div className="space-y-3">
           <Field label="Refill reminder (days before eligible)">
             <Input type="number" min="1" value={form.refill_reminder_days} onChange={e => setForm(f => ({ ...f, refill_reminder_days: e.target.value }))} />
@@ -791,31 +794,31 @@ function NotificationsTab() {
         {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save preferences'}
       </button>
 
-      <div className="pt-4 border-t border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Calendar feed</h3>
-        <p className="text-xs text-gray-500 mb-3">
+      <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Calendar feed</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           Import upcoming refill dates into Apple Calendar, Google Calendar, Outlook, or any app that supports iCal.
         </p>
         <div className="flex gap-3 flex-wrap">
           <a
             href="/api/calendar/feed.ics"
             download="medicine_cabinet.ics"
-            className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200"
+            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
           >
             Download .ics
           </a>
           <button
             onClick={generateToken}
             disabled={tokenGenerating}
-            className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
           >
             {tokenGenerating ? 'Generating…' : subscribeUrl ? 'Regenerate subscribe URL' : 'Generate subscribe URL'}
           </button>
         </div>
         {subscribeUrl && (
-          <div className="mt-3 bg-gray-50 rounded-lg p-3">
-            <p className="text-xs font-mono break-all text-gray-700">{subscribeUrl}</p>
-            <p className="text-xs text-gray-400 mt-1">
+          <div className="mt-3 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+            <p className="text-xs font-mono break-all text-gray-700 dark:text-gray-200">{subscribeUrl}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
               Subscribe to this URL in your calendar app for automatic updates. Keep it private — anyone with this URL can read your refill schedule. Regenerating will break existing subscriptions.
             </p>
           </div>
@@ -890,7 +893,7 @@ function ContactsTab() {
             key={s}
             onClick={() => setSection(s)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              section === s ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-600'
+              section === s ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300'
             }`}
           >
             {s === 'providers' ? 'Prescribers' : 'Pharmacies'}
@@ -906,10 +909,10 @@ function ContactsTab() {
 
       <ul className="space-y-2">
         {items.map(item => (
-          <li key={item.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-start justify-between">
+          <li key={item.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 flex items-start justify-between">
             <div>
-              <p className="font-medium text-gray-800">{item.name}</p>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="font-medium text-gray-800 dark:text-gray-100">{item.name}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 {isProvider && item.practice_name ? `${item.practice_name} · ` : ''}
                 {isProvider && item.specialty ? `${item.specialty} · ` : ''}
                 {item.phone || ''}
@@ -978,13 +981,13 @@ function ActivityTab() {
   return (
     <ul className="space-y-1">
       {logs.map(log => (
-        <li key={log.id} className="flex items-start gap-3 py-2 border-b border-gray-100 last:border-0">
-          <span className={`text-xs font-semibold w-16 shrink-0 pt-0.5 ${ACTION_STYLE[log.action] || 'text-gray-500'}`}>
+        <li key={log.id} className="flex items-start gap-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+          <span className={`text-xs font-semibold w-16 shrink-0 pt-0.5 ${ACTION_STYLE[log.action] || 'text-gray-500 dark:text-gray-400'}`}>
             {ACTION_LABEL[log.action] || log.action}
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-gray-700 truncate">{log.detail || `${log.entity_type} #${log.entity_id}`}</p>
-            <p className="text-xs text-gray-400">
+            <p className="text-sm text-gray-700 dark:text-gray-200 truncate">{log.detail || `${log.entity_type} #${log.entity_id}`}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
               {log.username || 'system'} · {new Date(log.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
             </p>
           </div>
@@ -1001,15 +1004,15 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
         {TABS.map((t, i) => (
           <button
             key={t}
             onClick={() => setTab(i)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
               tab === i
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
             {t}
