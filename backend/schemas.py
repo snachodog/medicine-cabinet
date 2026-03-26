@@ -32,10 +32,14 @@ class AccountCreate(BaseModel):
             raise ValueError("Password must contain at least one special character")
         return v
 
+class AccountUpdate(BaseModel):
+    email: Optional[str] = Field(None, max_length=254)
+
 class AccountResponse(BaseModel):
     id: int
     username: str
     is_active: bool
+    email: Optional[str]
 
     class Config:
         orm_mode = True
@@ -137,6 +141,7 @@ class PrescriptionCreate(BaseModel):
     scripts_remaining: int = 0
     last_fill_date: Optional[date] = None
     next_eligible_date: Optional[date] = None
+    expiration_date: Optional[date] = None
     co_pay: Optional[Decimal] = None
     notes: Optional[str] = Field(None, max_length=2000)
 
@@ -147,6 +152,7 @@ class PrescriptionUpdate(BaseModel):
     scripts_remaining: Optional[int] = None
     last_fill_date: Optional[date] = None
     next_eligible_date: Optional[date] = None
+    expiration_date: Optional[date] = None
     co_pay: Optional[Decimal] = None
     notes: Optional[str] = Field(None, max_length=2000)
 
@@ -159,6 +165,7 @@ class PrescriptionResponse(BaseModel):
     scripts_remaining: int
     last_fill_date: Optional[date]
     next_eligible_date: Optional[date]
+    expiration_date: Optional[date]
     co_pay: Optional[Decimal]
     notes: Optional[str]
 
@@ -224,6 +231,7 @@ class NotificationPrefUpdate(BaseModel):
     ntfy_token: Optional[str] = Field(None, max_length=500)
     refill_reminder_days: Optional[int] = None
     scripts_low_threshold: Optional[int] = None
+    email_enabled: Optional[bool] = None
 
 class NotificationPrefResponse(BaseModel):
     id: int
@@ -233,6 +241,7 @@ class NotificationPrefResponse(BaseModel):
     refill_reminder_days: int
     scripts_low_threshold: int
     calendar_token: Optional[str]
+    email_enabled: bool
 
     class Config:
         orm_mode = True

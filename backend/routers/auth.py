@@ -73,3 +73,16 @@ def logout(request: Request, response: Response):
 @router.get("/me", response_model=schemas.AccountResponse)
 def me(account=Depends(get_current_account)):
     return account
+
+
+@router.patch("/me", response_model=schemas.AccountResponse)
+def update_me(
+    payload: schemas.AccountUpdate,
+    db: Session = Depends(database.get_db),
+    account=Depends(get_current_account),
+):
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(account, field, value)
+    db.commit()
+    db.refresh(account)
+    return account

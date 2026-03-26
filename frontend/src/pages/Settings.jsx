@@ -453,7 +453,7 @@ function PrescriptionsTab() {
   const [form, setForm]                   = useState({
     medication_id: '', prescriber: '', pharmacy: '',
     days_supply: 30, scripts_remaining: 6,
-    last_fill_date: '', next_eligible_date: '', co_pay: '',
+    last_fill_date: '', next_eligible_date: '', expiration_date: '', co_pay: '',
   });
   const [providerSuggestions, setProviderSuggestions] = useState([]);
   const [pharmacySuggestions, setPharmacySuggestions] = useState([]);
@@ -489,7 +489,7 @@ function PrescriptionsTab() {
     setModal('add');
     setProviderSuggestions([]);
     setPharmacySuggestions([]);
-    setForm({ medication_id: '', prescriber: '', pharmacy: '', days_supply: 30, scripts_remaining: 6, last_fill_date: '', next_eligible_date: '', co_pay: '' });
+    setForm({ medication_id: '', prescriber: '', pharmacy: '', days_supply: 30, scripts_remaining: 6, last_fill_date: '', next_eligible_date: '', expiration_date: '', co_pay: '' });
   }
 
   function openEdit(rx) {
@@ -505,6 +505,7 @@ function PrescriptionsTab() {
       scripts_remaining: rx.scripts_remaining,
       last_fill_date: rx.last_fill_date || '',
       next_eligible_date: rx.next_eligible_date || '',
+      expiration_date: rx.expiration_date || '',
       co_pay: rx.co_pay != null ? String(rx.co_pay) : '',
     });
   }
@@ -531,6 +532,7 @@ function PrescriptionsTab() {
         scripts_remaining: Number(form.scripts_remaining),
         last_fill_date: form.last_fill_date || undefined,
         next_eligible_date: form.next_eligible_date || undefined,
+        expiration_date: form.expiration_date || undefined,
         co_pay: form.co_pay !== '' ? Number(form.co_pay) : undefined,
       };
       if (modal === 'add') {
@@ -691,6 +693,9 @@ function PrescriptionsTab() {
               <Input type="date" value={form.next_eligible_date} onChange={e => setForm(f => ({ ...f, next_eligible_date: e.target.value }))} />
             </Field>
           </div>
+          <Field label="Prescription expiration date">
+            <Input type="date" value={form.expiration_date} onChange={e => setForm(f => ({ ...f, expiration_date: e.target.value }))} />
+          </Field>
 
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setModal(null)} className="px-4 py-2 text-sm text-gray-600">Cancel</button>
@@ -711,23 +716,29 @@ function PrescriptionsTab() {
 // ── Notifications tab ──────────────────────────────────────────────────────────
 function NotificationsTab() {
   const [prefs, setPrefs]         = useState(null);
-  const [form, setForm]           = useState({ ntfy_url: '', ntfy_token: '', refill_reminder_days: 7, scripts_low_threshold: 2 });
+  const [form, setForm]           = useState({ ntfy_url: '', ntfy_token: '', refill_reminder_days: 7, scripts_low_threshold: 2, email_enabled: false });
+  const [email, setEmail]         = useState('');
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
   const [subscribeUrl, setSubscribeUrl] = useState(null);
   const [tokenGenerating, setTokenGenerating] = useState(false);
 
   useEffect(() => {
-    axios.get('/api/notifications/preferences').then(r => {
-      setPrefs(r.data);
+    Promise.all([
+      axios.get('/api/notifications/preferences'),
+      axios.get('/api/auth/me'),
+    ]).then(([prefsRes, meRes]) => {
+      setPrefs(prefsRes.data);
       setForm({
-        ntfy_url: r.data.ntfy_url || '',
-        ntfy_token: r.data.ntfy_token || '',
-        refill_reminder_days: r.data.refill_reminder_days,
-        scripts_low_threshold: r.data.scripts_low_threshold,
+        ntfy_url: prefsRes.data.ntfy_url || '',
+        ntfy_token: prefsRes.data.ntfy_token || '',
+        refill_reminder_days: prefsRes.data.refill_reminder_days,
+        scripts_low_threshold: prefsRes.data.scripts_low_threshold,
+        email_enabled: prefsRes.data.email_enabled,
       });
-      if (r.data.calendar_token) {
-        setSubscribeUrl(`${window.location.origin}/api/calendar/subscribe.ics?token=${r.data.calendar_token}`);
+      setEmail(meRes.data.email || '');
+      if (prefsRes.data.calendar_token) {
+        setSubscribeUrl(`${window.location.origin}/api/calendar/subscribe.ics?token=${prefsRes.data.calendar_token}`);
       }
     });
   }, []);
@@ -745,12 +756,16 @@ function NotificationsTab() {
   async function save() {
     setSaving(true);
     try {
-      await axios.patch('/api/notifications/preferences', {
-        ntfy_url: form.ntfy_url || null,
-        ntfy_token: form.ntfy_token || null,
-        refill_reminder_days: Number(form.refill_reminder_days),
-        scripts_low_threshold: Number(form.scripts_low_threshold),
-      });
+      await Promise.all([
+        axios.patch('/api/notifications/preferences', {
+          ntfy_url: form.ntfy_url || null,
+          ntfy_token: form.ntfy_token || null,
+          refill_reminder_days: Number(form.refill_reminder_days),
+          scripts_low_threshold: Number(form.scripts_low_threshold),
+          email_enabled: form.email_enabled,
+        }),
+        axios.patch('/api/auth/me', { email: email || null }),
+      ]);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {
@@ -762,6 +777,31 @@ function NotificationsTab() {
 
   return (
     <div className="space-y-5 max-w-md">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Email notifications</h3>
+        <div className="space-y-3">
+          <Field label="Email address">
+            <Input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </Field>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.email_enabled}
+              onChange={e => setForm(f => ({ ...f, email_enabled: e.target.checked }))}
+              className="w-4 h-4 accent-blue-600"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-200">
+              Send email alerts 7 and 30 days before prescription expiration
+            </span>
+          </label>
+        </div>
+      </div>
+
       <div>
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">ntfy push notifications</h3>
         <div className="space-y-3">
