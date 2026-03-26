@@ -6,8 +6,7 @@ python-dotenv
 pydantic
 alembic
 python-jose[cryptography]
-passlib[bcrypt]
-bcrypt<4
+bcrypt
 python-multipart
 slowapi
 fpdf2
