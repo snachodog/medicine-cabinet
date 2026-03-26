@@ -27,7 +27,7 @@ export default function Login() {
         const res = await axios.post('/api/auth/login', params, {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         });
-        login(res.data.access_token);
+        login(res.data);
         navigate('/');
       } else {
         await axios.post('/api/auth/register', form);

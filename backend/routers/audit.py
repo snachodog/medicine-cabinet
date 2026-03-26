@@ -16,9 +16,15 @@ def list_audit_logs(
     entity_id: Optional[int] = Query(None),
     limit: int = Query(100, le=500),
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    logs = crud.get_audit_logs(db, entity_type=entity_type, entity_id=entity_id, limit=limit)
+    logs = crud.get_audit_logs(
+        db,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        scope_to_account_id=account.id,
+        limit=limit,
+    )
     result = []
     for log in logs:
         result.append(schemas.AuditLogResponse(
