@@ -1,62 +1,94 @@
 # backend/routers/persons.py
-# --------------------------
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
+
 from .. import crud, schemas, database
 from ..auth import get_current_account
 
-router = APIRouter(
-    prefix="/persons",
-    tags=["persons"]
-)
+router = APIRouter(prefix="/persons", tags=["persons"])
 
-@router.post("/", response_model=schemas.Person)
+
+@router.post("", response_model=schemas.PersonResponse, status_code=201)
 def create_person(
-    person: schemas.PersonCreate,
+    payload: schemas.PersonCreate,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    return crud.create_person(db=db, person=person)
+    person = crud.create_person(db, payload)
+    crud.grant_access(db, account.id, person.id)
+    return person
 
-@router.get("/", response_model=list[schemas.Person])
-def read_persons(
-    skip: int = 0,
-    limit: int = 100,
+
+@router.get("", response_model=List[schemas.PersonResponse])
+def list_persons(
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    return crud.get_persons(db, skip=skip, limit=limit)
+    return crud.get_accessible_persons(db, account.id)
 
-@router.get("/{person_id}", response_model=schemas.Person)
-def read_person(
+
+@router.get("/{person_id}", response_model=schemas.PersonResponse)
+def get_person(
     person_id: int,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    db_person = crud.get_person(db, person_id=person_id)
-    if db_person is None:
+    _require_access(db, account.id, person_id)
+    person = crud.get_person(db, person_id)
+    if person is None:
         raise HTTPException(status_code=404, detail="Person not found")
-    return db_person
+    return person
 
-@router.put("/{person_id}", response_model=schemas.Person)
+
+@router.patch("/{person_id}", response_model=schemas.PersonResponse)
 def update_person(
     person_id: int,
-    person: schemas.PersonUpdate,
+    payload: schemas.PersonUpdate,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    db_person = crud.update_person(db, person_id=person_id, person=person)
-    if db_person is None:
+    _require_access(db, account.id, person_id)
+    person = crud.update_person(db, person_id, payload)
+    if person is None:
         raise HTTPException(status_code=404, detail="Person not found")
-    return db_person
+    return person
 
-@router.delete("/{person_id}", response_model=schemas.Person)
+
+@router.delete("/{person_id}", status_code=204)
 def delete_person(
     person_id: int,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    db_person = crud.delete_person(db, person_id=person_id)
-    if db_person is None:
+    _require_access(db, account.id, person_id)
+    if crud.delete_person(db, person_id) is None:
         raise HTTPException(status_code=404, detail="Person not found")
-    return db_person
+
+
+@router.post("/{person_id}/access/{target_account_id}", status_code=204)
+def grant_access(
+    person_id: int,
+    target_account_id: int,
+    db: Session = Depends(database.get_db),
+    account=Depends(get_current_account),
+):
+    """Grant another account access to a person (requester must already have access)."""
+    _require_access(db, account.id, person_id)
+    crud.grant_access(db, target_account_id, person_id)
+
+
+@router.delete("/{person_id}/access/{target_account_id}", status_code=204)
+def revoke_access(
+    person_id: int,
+    target_account_id: int,
+    db: Session = Depends(database.get_db),
+    account=Depends(get_current_account),
+):
+    _require_access(db, account.id, person_id)
+    crud.revoke_access(db, target_account_id, person_id)
+
+
+def _require_access(db, account_id: int, person_id: int):
+    if not crud.account_can_access_person(db, account_id, person_id):
+        raise HTTPException(status_code=403, detail="Access denied")

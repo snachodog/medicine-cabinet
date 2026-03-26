@@ -1,64 +1,127 @@
 # backend/routers/prescriptions.py
-# --------------------------------
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
+
 from .. import crud, schemas, database
 from ..auth import get_current_account
 
-router = APIRouter(
-    prefix="/prescriptions",
-    tags=["prescriptions"]
-)
+router = APIRouter(prefix="/prescriptions", tags=["prescriptions"])
 
-@router.post("/", response_model=schemas.Prescription)
+
+@router.post("", response_model=schemas.PrescriptionResponse, status_code=201)
 def create_prescription(
-    prescription: schemas.PrescriptionCreate,
+    payload: schemas.PrescriptionCreate,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    return crud.create_prescription(db=db, prescription=prescription)
+    med = crud.get_medication(db, payload.medication_id)
+    if med is None:
+        raise HTTPException(status_code=404, detail="Medication not found")
+    _require_access(db, account.id, med.person_id)
+    if crud.get_prescription_for_medication(db, payload.medication_id):
+        raise HTTPException(status_code=409, detail="Prescription already exists for this medication")
+    return crud.create_prescription(db, payload)
 
-@router.get("/", response_model=list[schemas.Prescription])
-def read_prescriptions(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
-):
-    return crud.get_prescriptions(db, skip=skip, limit=limit)
 
-@router.get("/{prescription_id}", response_model=schemas.Prescription)
-def read_prescription(
+@router.get("/{prescription_id}", response_model=schemas.PrescriptionResponse)
+def get_prescription(
     prescription_id: int,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    db_rx = crud.get_prescription(db, prescription_id=prescription_id)
-    if db_rx is None:
-        raise HTTPException(status_code=404, detail="Prescription not found")
-    return db_rx
+    rx = _get_or_404(db, prescription_id)
+    _require_access(db, account.id, rx.medication.person_id)
+    return rx
 
-@router.put("/{prescription_id}", response_model=schemas.Prescription)
+
+@router.patch("/{prescription_id}", response_model=schemas.PrescriptionResponse)
 def update_prescription(
     prescription_id: int,
-    prescription: schemas.PrescriptionUpdate,
+    payload: schemas.PrescriptionUpdate,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    db_rx = crud.update_prescription(
-        db, prescription_id=prescription_id, prescription=prescription
-    )
-    if db_rx is None:
-        raise HTTPException(status_code=404, detail="Prescription not found")
-    return db_rx
+    rx = _get_or_404(db, prescription_id)
+    _require_access(db, account.id, rx.medication.person_id)
+    return crud.update_prescription(db, prescription_id, payload)
 
-@router.delete("/{prescription_id}", response_model=schemas.Prescription)
+
+@router.delete("/{prescription_id}", status_code=204)
 def delete_prescription(
     prescription_id: int,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    db_rx = crud.delete_prescription(db, prescription_id=prescription_id)
-    if db_rx is None:
+    rx = _get_or_404(db, prescription_id)
+    _require_access(db, account.id, rx.medication.person_id)
+    crud.delete_prescription(db, prescription_id)
+
+
+# ── Fills ─────────────────────────────────────────────────────────────────────
+
+@router.post("/{prescription_id}/fills", response_model=schemas.FillResponse, status_code=201)
+def log_fill(
+    prescription_id: int,
+    payload: schemas.FillCreate,
+    db: Session = Depends(database.get_db),
+    account=Depends(get_current_account),
+):
+    rx = _get_or_404(db, prescription_id)
+    _require_access(db, account.id, rx.medication.person_id)
+    return crud.log_fill(db, prescription_id, payload, account.id)
+
+
+@router.get("/{prescription_id}/fills", response_model=List[schemas.FillResponse])
+def list_fills(
+    prescription_id: int,
+    db: Session = Depends(database.get_db),
+    account=Depends(get_current_account),
+):
+    rx = _get_or_404(db, prescription_id)
+    _require_access(db, account.id, rx.medication.person_id)
+    return crud.get_fills(db, prescription_id)
+
+
+@router.get("", response_model=List[schemas.PrescriptionWithContext])
+def list_prescriptions(
+    db: Session = Depends(database.get_db),
+    account=Depends(get_current_account),
+):
+    """Return all prescriptions across persons the account can access."""
+    from .. import crud as _crud
+    persons = _crud.get_accessible_persons(db, account.id)
+    results = []
+    for person in persons:
+        meds = _crud.get_medications_for_person(db, person.id, active_only=True)
+        for med in meds:
+            if med.prescription:
+                rx = med.prescription
+                results.append(schemas.PrescriptionWithContext(
+                    id=rx.id,
+                    medication_id=rx.medication_id,
+                    prescriber=rx.prescriber,
+                    pharmacy=rx.pharmacy,
+                    days_supply=rx.days_supply,
+                    scripts_remaining=rx.scripts_remaining,
+                    last_fill_date=rx.last_fill_date,
+                    next_eligible_date=rx.next_eligible_date,
+                    notes=rx.notes,
+                    medication_name=med.name,
+                    medication_type=med.type,
+                    person_id=person.id,
+                    person_name=person.name,
+                ))
+    results.sort(key=lambda r: (r.next_eligible_date or date.max))
+    return results
+
+
+def _get_or_404(db, prescription_id: int):
+    rx = crud.get_prescription(db, prescription_id)
+    if rx is None:
         raise HTTPException(status_code=404, detail="Prescription not found")
-    return db_rx
+    return rx
+
+def _require_access(db, account_id: int, person_id: int):
+    if not crud.account_can_access_person(db, account_id, person_id):
+        raise HTTPException(status_code=403, detail="Access denied")
