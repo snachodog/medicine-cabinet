@@ -258,25 +258,31 @@ class AuditLogResponse(BaseModel):
 
 class ProviderCreate(BaseModel):
     name: str = Field(..., max_length=200)
+    practice_name: Optional[str] = Field(None, max_length=200)
     specialty: Optional[str] = Field(None, max_length=200)
     phone: Optional[str] = Field(None, max_length=50)
     address: Optional[str] = Field(None, max_length=500)
+    website: Optional[str] = Field(None, max_length=500)
     notes: Optional[str] = Field(None, max_length=2000)
 
 class ProviderUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
+    practice_name: Optional[str] = Field(None, max_length=200)
     specialty: Optional[str] = Field(None, max_length=200)
     phone: Optional[str] = Field(None, max_length=50)
     address: Optional[str] = Field(None, max_length=500)
+    website: Optional[str] = Field(None, max_length=500)
     notes: Optional[str] = Field(None, max_length=2000)
 
 class ProviderResponse(BaseModel):
     id: int
     account_id: int
     name: str
+    practice_name: Optional[str]
     specialty: Optional[str]
     phone: Optional[str]
     address: Optional[str]
+    website: Optional[str]
     notes: Optional[str]
 
     class Config:
@@ -289,12 +295,14 @@ class PharmacyCreate(BaseModel):
     name: str = Field(..., max_length=200)
     phone: Optional[str] = Field(None, max_length=50)
     address: Optional[str] = Field(None, max_length=500)
+    website: Optional[str] = Field(None, max_length=500)
     notes: Optional[str] = Field(None, max_length=2000)
 
 class PharmacyUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
     phone: Optional[str] = Field(None, max_length=50)
     address: Optional[str] = Field(None, max_length=500)
+    website: Optional[str] = Field(None, max_length=500)
     notes: Optional[str] = Field(None, max_length=2000)
 
 class PharmacyResponse(BaseModel):
@@ -303,6 +311,7 @@ class PharmacyResponse(BaseModel):
     name: str
     phone: Optional[str]
     address: Optional[str]
+    website: Optional[str]
     notes: Optional[str]
 
     class Config:

@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 
 const TABS = ['Persons', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Activity'];
 const SCHEDULES = ['morning', 'evening', 'as_needed'];
-const MED_TYPES  = ['otc', 'supplement', 'rx', 'schedule_ii'];
-const TYPE_LABEL = { otc: 'OTC', supplement: 'Supplement', rx: 'Prescription', schedule_ii: 'Schedule II' };
+const MED_TYPES  = ['otc', 'supplement', 'rx'];
+const TYPE_LABEL = { otc: 'OTC', supplement: 'Supplement', rx: 'Prescription' };
 
 // ── Small reusable input ───────────────────────────────────────────────────────
 function Field({ label, children }) {
@@ -845,16 +845,16 @@ function ContactsTab() {
     setError(null);
     setModal('add');
     setForm(isProvider
-      ? { name: '', specialty: '', phone: '', address: '', notes: '' }
-      : { name: '', phone: '', address: '', notes: '' });
+      ? { name: '', practice_name: '', specialty: '', phone: '', address: '', website: '', notes: '' }
+      : { name: '', phone: '', address: '', website: '', notes: '' });
   }
 
   function openEdit(item) {
     setError(null);
     setModal(item);
     setForm(isProvider
-      ? { name: item.name, specialty: item.specialty || '', phone: item.phone || '', address: item.address || '', notes: item.notes || '' }
-      : { name: item.name, phone: item.phone || '', address: item.address || '', notes: item.notes || '' });
+      ? { name: item.name, practice_name: item.practice_name || '', specialty: item.specialty || '', phone: item.phone || '', address: item.address || '', website: item.website || '', notes: item.notes || '' }
+      : { name: item.name, phone: item.phone || '', address: item.address || '', website: item.website || '', notes: item.notes || '' });
   }
 
   async function save() {
@@ -910,6 +910,7 @@ function ContactsTab() {
             <div>
               <p className="font-medium text-gray-800">{item.name}</p>
               <p className="text-xs text-gray-400 mt-0.5">
+                {isProvider && item.practice_name ? `${item.practice_name} · ` : ''}
                 {isProvider && item.specialty ? `${item.specialty} · ` : ''}
                 {item.phone || ''}
                 {item.address ? (item.phone ? ` · ${item.address}` : item.address) : ''}
@@ -931,10 +932,14 @@ function ContactsTab() {
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Field label="Name"><Input value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></Field>
           {isProvider && (
+            <Field label="Practice / Clinic name (optional)"><Input value={form.practice_name || ''} onChange={e => setForm(f => ({ ...f, practice_name: e.target.value }))} placeholder="e.g. City Medical Group" /></Field>
+          )}
+          {isProvider && (
             <Field label="Specialty (optional)"><Input value={form.specialty || ''} onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))} placeholder="e.g. Psychiatry" /></Field>
           )}
           <Field label="Phone (optional)"><Input value={form.phone || ''} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 555-5555" /></Field>
           <Field label="Address (optional)"><Input value={form.address || ''} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></Field>
+          <Field label="Website (optional)"><Input value={form.website || ''} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://example.com" /></Field>
           <Field label="Notes (optional)"><Input value={form.notes || ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></Field>
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setModal(null)} className="px-4 py-2 text-sm text-gray-600">Cancel</button>
