@@ -303,6 +303,102 @@ def get_streak(db: Session, person_id: int, medication_id: int) -> int:
     return streak
 
 
+# ── Providers ─────────────────────────────────────────────────────────────────
+
+def get_providers(db: Session, account_id: int) -> List:
+    return (
+        db.query(models.Provider)
+        .filter(models.Provider.account_id == account_id)
+        .order_by(models.Provider.name)
+        .all()
+    )
+
+def get_provider(db: Session, provider_id: int, account_id: int):
+    return db.query(models.Provider).filter(
+        models.Provider.id == provider_id,
+        models.Provider.account_id == account_id,
+    ).first()
+
+def create_provider(db: Session, account_id: int, payload: schemas.ProviderCreate):
+    provider = models.Provider(account_id=account_id, **payload.dict())
+    db.add(provider)
+    db.commit()
+    db.refresh(provider)
+    return provider
+
+def update_provider(db: Session, provider_id: int, account_id: int, payload: schemas.ProviderUpdate):
+    provider = get_provider(db, provider_id, account_id)
+    if provider is None:
+        return None
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(provider, field, value)
+    db.commit()
+    db.refresh(provider)
+    return provider
+
+def delete_provider(db: Session, provider_id: int, account_id: int):
+    provider = get_provider(db, provider_id, account_id)
+    if provider is None:
+        return None
+    db.delete(provider)
+    db.commit()
+    return provider
+
+def search_providers(db: Session, account_id: int, q: Optional[str] = None) -> List:
+    query = db.query(models.Provider).filter(models.Provider.account_id == account_id)
+    if q:
+        query = query.filter(models.Provider.name.ilike(f"%{q}%"))
+    return query.order_by(models.Provider.name).limit(10).all()
+
+
+# ── Pharmacies ────────────────────────────────────────────────────────────────
+
+def get_pharmacies(db: Session, account_id: int) -> List:
+    return (
+        db.query(models.Pharmacy)
+        .filter(models.Pharmacy.account_id == account_id)
+        .order_by(models.Pharmacy.name)
+        .all()
+    )
+
+def get_pharmacy(db: Session, pharmacy_id: int, account_id: int):
+    return db.query(models.Pharmacy).filter(
+        models.Pharmacy.id == pharmacy_id,
+        models.Pharmacy.account_id == account_id,
+    ).first()
+
+def create_pharmacy(db: Session, account_id: int, payload: schemas.PharmacyCreate):
+    pharmacy = models.Pharmacy(account_id=account_id, **payload.dict())
+    db.add(pharmacy)
+    db.commit()
+    db.refresh(pharmacy)
+    return pharmacy
+
+def update_pharmacy(db: Session, pharmacy_id: int, account_id: int, payload: schemas.PharmacyUpdate):
+    pharmacy = get_pharmacy(db, pharmacy_id, account_id)
+    if pharmacy is None:
+        return None
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(pharmacy, field, value)
+    db.commit()
+    db.refresh(pharmacy)
+    return pharmacy
+
+def delete_pharmacy(db: Session, pharmacy_id: int, account_id: int):
+    pharmacy = get_pharmacy(db, pharmacy_id, account_id)
+    if pharmacy is None:
+        return None
+    db.delete(pharmacy)
+    db.commit()
+    return pharmacy
+
+def search_pharmacies(db: Session, account_id: int, q: Optional[str] = None) -> List:
+    query = db.query(models.Pharmacy).filter(models.Pharmacy.account_id == account_id)
+    if q:
+        query = query.filter(models.Pharmacy.name.ilike(f"%{q}%"))
+    return query.order_by(models.Pharmacy.name).limit(10).all()
+
+
 # ── Notification Preferences ──────────────────────────────────────────────────
 
 def get_or_create_notification_pref(db: Session, account_id: int):
@@ -325,6 +421,18 @@ def update_notification_pref(
     db.commit()
     db.refresh(pref)
     return pref
+
+def set_calendar_token(db: Session, account_id: int, token: str):
+    pref = get_or_create_notification_pref(db, account_id)
+    pref.calendar_token = token
+    db.commit()
+    db.refresh(pref)
+    return pref
+
+def get_pref_by_calendar_token(db: Session, token: str):
+    return db.query(models.NotificationPreference).filter(
+        models.NotificationPreference.calendar_token == token
+    ).first()
 
 
 # ── Audit Log ─────────────────────────────────────────────────────────────────

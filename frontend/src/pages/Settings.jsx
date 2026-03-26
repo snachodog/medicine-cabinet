@@ -3,7 +3,7 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 
-const TABS = ['Persons', 'Medications', 'Prescriptions', 'Notifications', 'Activity'];
+const TABS = ['Persons', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Activity'];
 const SCHEDULES = ['morning', 'evening', 'as_needed'];
 const MED_TYPES  = ['otc', 'supplement', 'rx', 'schedule_ii'];
 const TYPE_LABEL = { otc: 'OTC', supplement: 'Supplement', rx: 'Prescription', schedule_ii: 'Schedule II' };
@@ -185,6 +185,7 @@ function PersonsTab() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => setSharingFor(p)} className="text-sm text-gray-500 hover:text-blue-600 hover:underline">Sharing</button>
+              <a href={`/api/persons/${p.id}/export.pdf`} download className="text-sm text-gray-500 hover:text-green-600 hover:underline">PDF</a>
               <button onClick={() => openEdit(p)}      className="text-sm text-blue-600 hover:underline">Edit</button>
               <button onClick={() => del(p)}           className="text-sm text-red-500 hover:underline">Delete</button>
             </div>
@@ -447,8 +448,10 @@ function PrescriptionsTab() {
   const [form, setForm]                   = useState({
     medication_id: '', prescriber: '', pharmacy: '',
     days_supply: 30, scripts_remaining: 6,
-    last_fill_date: '', next_eligible_date: '',
+    last_fill_date: '', next_eligible_date: '', co_pay: '',
   });
+  const [providerSuggestions, setProviderSuggestions] = useState([]);
+  const [pharmacySuggestions, setPharmacySuggestions] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState(null);
 
@@ -481,12 +484,16 @@ function PrescriptionsTab() {
   function openAdd() {
     setError(null);
     setModal('add');
-    setForm({ medication_id: '', prescriber: '', pharmacy: '', days_supply: 30, scripts_remaining: 6, last_fill_date: '', next_eligible_date: '' });
+    setProviderSuggestions([]);
+    setPharmacySuggestions([]);
+    setForm({ medication_id: '', prescriber: '', pharmacy: '', days_supply: 30, scripts_remaining: 6, last_fill_date: '', next_eligible_date: '', co_pay: '' });
   }
 
   function openEdit(rx) {
     setError(null);
     setModal(rx);
+    setProviderSuggestions([]);
+    setPharmacySuggestions([]);
     setForm({
       medication_id: rx.medication_id,
       prescriber: rx.prescriber || '',
@@ -495,7 +502,20 @@ function PrescriptionsTab() {
       scripts_remaining: rx.scripts_remaining,
       last_fill_date: rx.last_fill_date || '',
       next_eligible_date: rx.next_eligible_date || '',
+      co_pay: rx.co_pay != null ? String(rx.co_pay) : '',
     });
+  }
+
+  async function fetchProviderSuggestions(q) {
+    if (q.length < 2) { setProviderSuggestions([]); return; }
+    const r = await axios.get('/api/contacts/providers/search', { params: { q } });
+    setProviderSuggestions(r.data);
+  }
+
+  async function fetchPharmacySuggestions(q) {
+    if (q.length < 2) { setPharmacySuggestions([]); return; }
+    const r = await axios.get('/api/contacts/pharmacies/search', { params: { q } });
+    setPharmacySuggestions(r.data);
   }
 
   async function save() {
@@ -508,6 +528,7 @@ function PrescriptionsTab() {
         scripts_remaining: Number(form.scripts_remaining),
         last_fill_date: form.last_fill_date || undefined,
         next_eligible_date: form.next_eligible_date || undefined,
+        co_pay: form.co_pay !== '' ? Number(form.co_pay) : undefined,
       };
       if (modal === 'add') {
         await axios.post('/api/prescriptions', { ...body, medication_id: Number(form.medication_id) });
@@ -556,7 +577,8 @@ function PrescriptionsTab() {
                 <p className="font-medium text-gray-800">{rx.medication_name}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Scripts remaining: {rx.scripts_remaining} · {rx.days_supply}d supply
-                  {rx.prescriber ? ` · Dr. ${rx.prescriber}` : ''}
+                  {rx.prescriber ? ` · ${rx.prescriber}` : ''}
+                  {rx.co_pay != null ? ` · $${Number(rx.co_pay).toFixed(2)} co-pay` : ''}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -606,10 +628,57 @@ function PrescriptionsTab() {
             </Field>
           </div>
           <Field label="Prescriber (optional)">
-            <Input value={form.prescriber} onChange={e => setForm(f => ({ ...f, prescriber: e.target.value }))} placeholder="Dr. Last Name" />
+            <div className="relative">
+              <Input
+                value={form.prescriber}
+                onChange={e => { setForm(f => ({ ...f, prescriber: e.target.value })); fetchProviderSuggestions(e.target.value); }}
+                onBlur={() => setTimeout(() => setProviderSuggestions([]), 150)}
+                placeholder="Start typing to search saved providers…"
+              />
+              {providerSuggestions.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                  {providerSuggestions.map(p => (
+                    <li key={p.id}>
+                      <button
+                        onMouseDown={() => { setForm(f => ({ ...f, prescriber: p.name })); setProviderSuggestions([]); }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex justify-between"
+                      >
+                        <span>{p.name}</span>
+                        {p.specialty && <span className="text-xs text-gray-400">{p.specialty}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </Field>
           <Field label="Pharmacy (optional)">
-            <Input value={form.pharmacy} onChange={e => setForm(f => ({ ...f, pharmacy: e.target.value }))} />
+            <div className="relative">
+              <Input
+                value={form.pharmacy}
+                onChange={e => { setForm(f => ({ ...f, pharmacy: e.target.value })); fetchPharmacySuggestions(e.target.value); }}
+                onBlur={() => setTimeout(() => setPharmacySuggestions([]), 150)}
+                placeholder="Start typing to search saved pharmacies…"
+              />
+              {pharmacySuggestions.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                  {pharmacySuggestions.map(p => (
+                    <li key={p.id}>
+                      <button
+                        onMouseDown={() => { setForm(f => ({ ...f, pharmacy: p.name })); setPharmacySuggestions([]); }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex justify-between"
+                      >
+                        <span>{p.name}</span>
+                        {p.phone && <span className="text-xs text-gray-400">{p.phone}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </Field>
+          <Field label="Co-pay (optional)">
+            <Input type="number" min="0" step="0.01" value={form.co_pay} onChange={e => setForm(f => ({ ...f, co_pay: e.target.value }))} placeholder="0.00" />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Last fill date">
@@ -638,10 +707,12 @@ function PrescriptionsTab() {
 
 // ── Notifications tab ──────────────────────────────────────────────────────────
 function NotificationsTab() {
-  const [prefs, setPrefs]   = useState(null);
-  const [form, setForm]     = useState({ ntfy_url: '', ntfy_token: '', refill_reminder_days: 7, scripts_low_threshold: 2 });
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved]   = useState(false);
+  const [prefs, setPrefs]         = useState(null);
+  const [form, setForm]           = useState({ ntfy_url: '', ntfy_token: '', refill_reminder_days: 7, scripts_low_threshold: 2 });
+  const [saving, setSaving]       = useState(false);
+  const [saved, setSaved]         = useState(false);
+  const [subscribeUrl, setSubscribeUrl] = useState(null);
+  const [tokenGenerating, setTokenGenerating] = useState(false);
 
   useEffect(() => {
     axios.get('/api/notifications/preferences').then(r => {
@@ -652,8 +723,21 @@ function NotificationsTab() {
         refill_reminder_days: r.data.refill_reminder_days,
         scripts_low_threshold: r.data.scripts_low_threshold,
       });
+      if (r.data.calendar_token) {
+        setSubscribeUrl(`${window.location.origin}/api/calendar/subscribe.ics?token=${r.data.calendar_token}`);
+      }
     });
   }, []);
+
+  async function generateToken() {
+    setTokenGenerating(true);
+    try {
+      const r = await axios.post('/api/calendar/token');
+      setSubscribeUrl(`${window.location.origin}${r.data.subscribe_url}`);
+    } finally {
+      setTokenGenerating(false);
+    }
+  }
 
   async function save() {
     setSaving(true);
@@ -706,9 +790,164 @@ function NotificationsTab() {
       >
         {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save preferences'}
       </button>
+
+      <div className="pt-4 border-t border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">Calendar feed</h3>
+        <p className="text-xs text-gray-500 mb-3">
+          Import upcoming refill dates into Apple Calendar, Google Calendar, Outlook, or any app that supports iCal.
+        </p>
+        <div className="flex gap-3 flex-wrap">
+          <a
+            href="/api/calendar/feed.ics"
+            download="medicine_cabinet.ics"
+            className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200"
+          >
+            Download .ics
+          </a>
+          <button
+            onClick={generateToken}
+            disabled={tokenGenerating}
+            className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50"
+          >
+            {tokenGenerating ? 'Generating…' : subscribeUrl ? 'Regenerate subscribe URL' : 'Generate subscribe URL'}
+          </button>
+        </div>
+        {subscribeUrl && (
+          <div className="mt-3 bg-gray-50 rounded-lg p-3">
+            <p className="text-xs font-mono break-all text-gray-700">{subscribeUrl}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Subscribe to this URL in your calendar app for automatic updates. Keep it private — anyone with this URL can read your refill schedule. Regenerating will break existing subscriptions.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+// ── Contacts tab ──────────────────────────────────────────────────────────────
+function ContactsTab() {
+  const [section, setSection]   = useState('providers'); // 'providers' | 'pharmacies'
+  const [items, setItems]       = useState([]);
+  const [modal, setModal]       = useState(null);
+  const [form, setForm]         = useState({});
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState(null);
+
+  const isProvider = section === 'providers';
+
+  function load() {
+    axios.get(`/api/contacts/${section}`).then(r => setItems(r.data));
+  }
+  useEffect(() => { load(); }, [section]);
+
+  function openAdd() {
+    setError(null);
+    setModal('add');
+    setForm(isProvider
+      ? { name: '', specialty: '', phone: '', address: '', notes: '' }
+      : { name: '', phone: '', address: '', notes: '' });
+  }
+
+  function openEdit(item) {
+    setError(null);
+    setModal(item);
+    setForm(isProvider
+      ? { name: item.name, specialty: item.specialty || '', phone: item.phone || '', address: item.address || '', notes: item.notes || '' }
+      : { name: item.name, phone: item.phone || '', address: item.address || '', notes: item.notes || '' });
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      const endpoint = `/api/contacts/${section}`;
+      if (modal === 'add') {
+        await axios.post(endpoint, form);
+      } else {
+        await axios.patch(`${endpoint}/${modal.id}`, form);
+      }
+      setModal(null);
+      load();
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Could not save.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function del(item) {
+    const label = isProvider ? 'provider' : 'pharmacy';
+    if (!confirm(`Delete ${item.name}?`)) return;
+    await axios.delete(`/api/contacts/${section}/${item.id}`);
+    load();
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        {['providers', 'pharmacies'].map(s => (
+          <button
+            key={s}
+            onClick={() => setSection(s)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              section === s ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-600'
+            }`}
+          >
+            {s === 'providers' ? 'Prescribers' : 'Pharmacies'}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex justify-end">
+        <button onClick={openAdd} className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+          Add {isProvider ? 'prescriber' : 'pharmacy'}
+        </button>
+      </div>
+
+      <ul className="space-y-2">
+        {items.map(item => (
+          <li key={item.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-start justify-between">
+            <div>
+              <p className="font-medium text-gray-800">{item.name}</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {isProvider && item.specialty ? `${item.specialty} · ` : ''}
+                {item.phone || ''}
+                {item.address ? (item.phone ? ` · ${item.address}` : item.address) : ''}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => openEdit(item)} className="text-sm text-blue-600 hover:underline">Edit</button>
+              <button onClick={() => del(item)}      className="text-sm text-red-500 hover:underline">Delete</button>
+            </div>
+          </li>
+        ))}
+        {items.length === 0 && (
+          <p className="text-sm text-gray-400">No {isProvider ? 'prescribers' : 'pharmacies'} saved yet.</p>
+        )}
+      </ul>
+
+      <Modal isOpen={!!modal} onClose={() => setModal(null)} title={modal === 'add' ? `Add ${isProvider ? 'prescriber' : 'pharmacy'}` : `Edit ${isProvider ? 'prescriber' : 'pharmacy'}`}>
+        <div className="space-y-4">
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <Field label="Name"><Input value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></Field>
+          {isProvider && (
+            <Field label="Specialty (optional)"><Input value={form.specialty || ''} onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))} placeholder="e.g. Psychiatry" /></Field>
+          )}
+          <Field label="Phone (optional)"><Input value={form.phone || ''} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 555-5555" /></Field>
+          <Field label="Address (optional)"><Input value={form.address || ''} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></Field>
+          <Field label="Notes (optional)"><Input value={form.notes || ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></Field>
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setModal(null)} className="px-4 py-2 text-sm text-gray-600">Cancel</button>
+            <button onClick={save} disabled={saving || !form.name?.trim()} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50">
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
 
 // ── Activity tab ──────────────────────────────────────────────────────────────
 const ACTION_STYLE = {
@@ -753,7 +992,7 @@ function ActivityTab() {
 // ── Main Settings page ─────────────────────────────────────────────────────────
 export default function Settings() {
   const [tab, setTab] = useState(0);
-  const CONTENT = [<PersonsTab />, <MedicationsTab />, <PrescriptionsTab />, <NotificationsTab />, <ActivityTab />];
+  const CONTENT = [<PersonsTab />, <MedicationsTab />, <PrescriptionsTab />, <ContactsTab />, <NotificationsTab />, <ActivityTab />];
 
   return (
     <div className="space-y-6">
