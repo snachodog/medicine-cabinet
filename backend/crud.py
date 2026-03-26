@@ -84,6 +84,14 @@ def revoke_access(db: Session, account_id: int, person_id: int):
         db.delete(link)
         db.commit()
 
+def get_access_list(db: Session, person_id: int):
+    links = (
+        db.query(models.AccountPersonAccess)
+        .filter(models.AccountPersonAccess.person_id == person_id)
+        .all()
+    )
+    return [{"account_id": link.account_id, "username": link.account.username} for link in links]
+
 def account_can_access_person(db: Session, account_id: int, person_id: int) -> bool:
     return db.query(models.AccountPersonAccess).filter_by(
         account_id=account_id, person_id=person_id

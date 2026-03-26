@@ -66,16 +66,29 @@ def delete_person(
         raise HTTPException(status_code=404, detail="Person not found")
 
 
-@router.post("/{person_id}/access/{target_account_id}", status_code=204)
-def grant_access(
+@router.get("/{person_id}/access", response_model=List[schemas.AccessEntry])
+def list_access(
     person_id: int,
-    target_account_id: int,
     db: Session = Depends(database.get_db),
     account=Depends(get_current_account),
 ):
-    """Grant another account access to a person (requester must already have access)."""
     _require_access(db, account.id, person_id)
-    crud.grant_access(db, target_account_id, person_id)
+    return crud.get_access_list(db, person_id)
+
+
+@router.post("/{person_id}/access", status_code=204)
+def grant_access(
+    person_id: int,
+    payload: schemas.AccessGrantByUsername,
+    db: Session = Depends(database.get_db),
+    account=Depends(get_current_account),
+):
+    """Grant another account access by username. Requester must already have access."""
+    _require_access(db, account.id, person_id)
+    target = crud.get_account_by_username(db, payload.username)
+    if target is None:
+        raise HTTPException(status_code=404, detail="No account with that username")
+    crud.grant_access(db, target.id, person_id)
 
 
 @router.delete("/{person_id}/access/{target_account_id}", status_code=204)
@@ -86,6 +99,8 @@ def revoke_access(
     account=Depends(get_current_account),
 ):
     _require_access(db, account.id, person_id)
+    if target_account_id == account.id:
+        raise HTTPException(status_code=400, detail="Cannot remove your own access")
     crud.revoke_access(db, target_account_id, person_id)
 
 

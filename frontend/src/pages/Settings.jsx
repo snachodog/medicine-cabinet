@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import Modal from '../components/Modal';
+import { useAuth } from '../context/AuthContext';
 
 const TABS = ['Persons', 'Medications', 'Prescriptions', 'Notifications'];
 const SCHEDULES = ['morning', 'evening', 'as_needed'];
@@ -35,22 +36,109 @@ function Select({ children, ...props }) {
   );
 }
 
+// ── Sharing sub-modal ─────────────────────────────────────────────────────────
+function SharingModal({ person, onClose }) {
+  const { account } = useAuth();
+  const [accessList, setAccessList] = useState([]);
+  const [newUsername, setNewUsername] = useState('');
+  const [error, setError] = useState(null);
+  const [adding, setAdding] = useState(false);
+
+  function loadAccess() {
+    axios.get(`/api/persons/${person.id}/access`)
+      .then(r => setAccessList(r.data));
+  }
+  useEffect(() => { loadAccess(); }, [person.id]);
+
+  async function addUser() {
+    if (!newUsername.trim()) return;
+    setAdding(true);
+    setError(null);
+    try {
+      await axios.post(`/api/persons/${person.id}/access`, { username: newUsername.trim() });
+      setNewUsername('');
+      loadAccess();
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Could not add user.');
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function removeUser(entry) {
+    await axios.delete(`/api/persons/${person.id}/access/${entry.account_id}`);
+    loadAccess();
+  }
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title={`Sharing — ${person.name}`}>
+      <div className="space-y-5">
+        <div>
+          <p className="text-sm text-gray-500 mb-3">Accounts that can log doses for {person.name}:</p>
+          <ul className="space-y-2">
+            {accessList.map(entry => (
+              <li key={entry.account_id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-sm font-medium text-gray-700">{entry.username}</span>
+                {entry.account_id === account?.id ? (
+                  <span className="text-xs text-gray-400">you</span>
+                ) : (
+                  <button
+                    onClick={() => removeUser(entry)}
+                    className="text-xs text-red-500 hover:underline"
+                  >
+                    Remove
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-2">Add a household member by username</p>
+          {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+          <div className="flex gap-2">
+            <Input
+              value={newUsername}
+              onChange={e => setNewUsername(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addUser()}
+              placeholder="username"
+            />
+            <button
+              onClick={addUser}
+              disabled={adding || !newUsername.trim()}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 shrink-0"
+            >
+              {adding ? '…' : 'Add'}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600">Done</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ── Persons tab ────────────────────────────────────────────────────────────────
 function PersonsTab() {
-  const [persons, setPersons] = useState([]);
-  const [modal, setModal]     = useState(null);  // null | 'add' | person-object
-  const [name, setName]       = useState('');
-  const [notes, setNotes]     = useState('');
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState(null);
+  const [persons, setPersons]     = useState([]);
+  const [modal, setModal]         = useState(null);  // null | 'add' | person-object
+  const [sharingFor, setSharingFor] = useState(null); // person-object | null
+  const [name, setName]           = useState('');
+  const [notes, setNotes]         = useState('');
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState(null);
 
   function load() {
     axios.get('/api/persons').then(r => setPersons(r.data));
   }
   useEffect(() => { load(); }, []);
 
-  function openAdd()    { setModal('add'); setName(''); setNotes(''); }
-  function openEdit(p)  { setModal(p); setName(p.name); setNotes(p.notes || ''); }
+  function openAdd()    { setModal('add'); setName(''); setNotes(''); setError(null); }
+  function openEdit(p)  { setModal(p); setName(p.name); setNotes(p.notes || ''); setError(null); }
 
   async function save() {
     setSaving(true);
@@ -92,13 +180,15 @@ function PersonsTab() {
               {p.notes && <p className="text-xs text-gray-400">{p.notes}</p>}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => openEdit(p)} className="text-sm text-blue-600 hover:underline">Edit</button>
-              <button onClick={() => del(p)}      className="text-sm text-red-500 hover:underline">Delete</button>
+              <button onClick={() => setSharingFor(p)} className="text-sm text-gray-500 hover:text-blue-600 hover:underline">Sharing</button>
+              <button onClick={() => openEdit(p)}      className="text-sm text-blue-600 hover:underline">Edit</button>
+              <button onClick={() => del(p)}           className="text-sm text-red-500 hover:underline">Delete</button>
             </div>
           </li>
         ))}
       </ul>
 
+      {/* Edit / add modal */}
       <Modal isOpen={!!modal} onClose={() => setModal(null)} title={modal === 'add' ? 'Add person' : 'Edit person'}>
         <div className="space-y-4">
           {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -112,6 +202,11 @@ function PersonsTab() {
           </div>
         </div>
       </Modal>
+
+      {/* Sharing modal */}
+      {sharingFor && (
+        <SharingModal person={sharingFor} onClose={() => setSharingFor(null)} />
+      )}
     </div>
   );
 }
