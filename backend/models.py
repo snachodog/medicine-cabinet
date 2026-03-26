@@ -165,9 +165,11 @@ class Provider(Base):
     id = Column(Integer, primary_key=True, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False, index=True)
     name = Column(String, nullable=False)
+    practice_name = Column(String, nullable=True)
     specialty = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     address = Column(Text, nullable=True)
+    website = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
 
     account = relationship("Account", back_populates="providers")
@@ -182,6 +184,7 @@ class Pharmacy(Base):
     name = Column(String, nullable=False)
     phone = Column(String, nullable=True)
     address = Column(Text, nullable=True)
+    website = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
 
     account = relationship("Account", back_populates="pharmacies")
