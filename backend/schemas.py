@@ -47,8 +47,12 @@ class PersonResponse(BaseModel):
 
 # ── Account–Person access ─────────────────────────────────────────────────────
 
-class AccessGrant(BaseModel):
-    person_id: int
+class AccessGrantByUsername(BaseModel):
+    username: str
+
+class AccessEntry(BaseModel):
+    account_id: int
+    username: str
 
 
 # ── Medication Catalog ────────────────────────────────────────────────────────
