@@ -322,3 +322,37 @@ def update_notification_pref(
     db.commit()
     db.refresh(pref)
     return pref
+
+
+# ── Audit Log ─────────────────────────────────────────────────────────────────
+
+def write_audit(
+    db: Session,
+    entity_type: str,
+    entity_id: int,
+    action: str,
+    account_id: Optional[int] = None,
+    detail: Optional[str] = None,
+):
+    entry = models.AuditLog(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        action=action,
+        account_id=account_id,
+        detail=detail,
+    )
+    db.add(entry)
+    db.commit()
+
+def get_audit_logs(
+    db: Session,
+    entity_type: Optional[str] = None,
+    entity_id: Optional[int] = None,
+    limit: int = 100,
+) -> List:
+    q = db.query(models.AuditLog).order_by(models.AuditLog.timestamp.desc())
+    if entity_type:
+        q = q.filter(models.AuditLog.entity_type == entity_type)
+    if entity_id is not None:
+        q = q.filter(models.AuditLog.entity_id == entity_id)
+    return q.limit(limit).all()

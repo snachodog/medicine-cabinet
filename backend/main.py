@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from .routers import auth as auth_router
-from .routers import persons, medications, prescriptions, dose_logs, catalog, notifications
+from .routers import persons, medications, prescriptions, dose_logs, catalog, notifications, audit
 
 _frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 
@@ -27,6 +27,7 @@ app.include_router(prescriptions.router, prefix="/api")
 app.include_router(dose_logs.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
+app.include_router(audit.router, prefix="/api")
 
 # Serve compiled frontend assets (JS/CSS bundles)
 _assets_dir = os.path.join(_frontend_dist, "assets")

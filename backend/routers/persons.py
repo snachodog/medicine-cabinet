@@ -17,6 +17,7 @@ def create_person(
 ):
     person = crud.create_person(db, payload)
     crud.grant_access(db, account.id, person.id)
+    crud.write_audit(db, "person", person.id, "create", account.id, f"Created person '{person.name}'")
     return person
 
 
@@ -52,6 +53,7 @@ def update_person(
     person = crud.update_person(db, person_id, payload)
     if person is None:
         raise HTTPException(status_code=404, detail="Person not found")
+    crud.write_audit(db, "person", person_id, "update", account.id, f"Updated person '{person.name}'")
     return person
 
 
@@ -62,8 +64,10 @@ def delete_person(
     account=Depends(get_current_account),
 ):
     _require_access(db, account.id, person_id)
-    if crud.delete_person(db, person_id) is None:
+    deleted = crud.delete_person(db, person_id)
+    if deleted is None:
         raise HTTPException(status_code=404, detail="Person not found")
+    crud.write_audit(db, "person", person_id, "delete", account.id, f"Deleted person '{deleted.name}'")
 
 
 @router.get("/{person_id}/access", response_model=List[schemas.AccessEntry])

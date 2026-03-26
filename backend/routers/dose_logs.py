@@ -65,3 +65,5 @@ def delete_dose_log(
     if not crud.account_can_access_person(db, account.id, entry.person_id):
         raise HTTPException(status_code=403, detail="Access denied")
     crud.delete_dose_log(db, dose_log_id)
+    crud.write_audit(db, "dose_log", dose_log_id, "delete", account.id,
+                     f"Undid dose of '{entry.medication.name}' for person {entry.person_id}")

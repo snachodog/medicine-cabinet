@@ -16,7 +16,9 @@ def create_medication(
     account=Depends(get_current_account),
 ):
     _require_access(db, account.id, payload.person_id)
-    return crud.create_medication(db, payload)
+    med = crud.create_medication(db, payload)
+    crud.write_audit(db, "medication", med.id, "create", account.id, f"Added '{med.name}' for person {med.person_id}")
+    return med
 
 
 @router.get("/person/{person_id}", response_model=List[schemas.MedicationResponse])
@@ -50,7 +52,9 @@ def update_medication(
 ):
     med = _get_or_404(db, medication_id)
     _require_access(db, account.id, med.person_id)
-    return crud.update_medication(db, medication_id, payload)
+    updated = crud.update_medication(db, medication_id, payload)
+    crud.write_audit(db, "medication", medication_id, "update", account.id, f"Updated '{updated.name}'")
+    return updated
 
 
 @router.delete("/{medication_id}", status_code=204)
@@ -62,6 +66,7 @@ def delete_medication(
     med = _get_or_404(db, medication_id)
     _require_access(db, account.id, med.person_id)
     crud.delete_medication(db, medication_id)
+    crud.write_audit(db, "medication", medication_id, "delete", account.id, f"Deleted '{med.name}'")
 
 
 def _get_or_404(db, medication_id: int):

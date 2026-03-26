@@ -126,6 +126,21 @@ class DoseLog(Base):
     logged_by = relationship("Account", back_populates="dose_logs")
 
 
+class AuditLog(Base):
+    """Immutable record of every create/update/delete across the app."""
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
+    entity_type = Column(String, nullable=False)   # person | medication | prescription | fill | dose_log
+    entity_id = Column(Integer, nullable=False)
+    action = Column(String, nullable=False)        # create | update | delete
+    detail = Column(Text, nullable=True)
+
+    account = relationship("Account")
+
+
 class NotificationPreference(Base):
     __tablename__ = "notification_preferences"
 

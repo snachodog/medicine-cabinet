@@ -208,3 +208,19 @@ class NotificationPrefResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+# ── Audit Log ─────────────────────────────────────────────────────────────────
+
+class AuditLogResponse(BaseModel):
+    id: int
+    timestamp: datetime
+    account_id: Optional[int]
+    username: Optional[str]
+    entity_type: str
+    entity_id: int
+    action: str
+    detail: Optional[str]
+
+    class Config:
+        orm_mode = True

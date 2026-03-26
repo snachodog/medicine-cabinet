@@ -3,7 +3,7 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 
-const TABS = ['Persons', 'Medications', 'Prescriptions', 'Notifications'];
+const TABS = ['Persons', 'Medications', 'Prescriptions', 'Notifications', 'Activity'];
 const SCHEDULES = ['morning', 'evening', 'as_needed'];
 const MED_TYPES  = ['otc', 'supplement', 'rx', 'schedule_ii'];
 const TYPE_LABEL = { otc: 'OTC', supplement: 'Supplement', rx: 'Prescription', schedule_ii: 'Schedule II' };
@@ -665,10 +665,50 @@ function NotificationsTab() {
   );
 }
 
+// ── Activity tab ──────────────────────────────────────────────────────────────
+const ACTION_STYLE = {
+  create: 'text-green-600',
+  update: 'text-blue-600',
+  delete: 'text-red-500',
+};
+const ACTION_LABEL = { create: 'Added', update: 'Updated', delete: 'Removed' };
+
+function ActivityTab() {
+  const [logs, setLogs] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    axios.get('/api/audit', { params: { limit: 100 } })
+      .then(r => setLogs(r.data))
+      .catch(() => setError('Could not load activity.'));
+  }, []);
+
+  if (error) return <p className="text-red-500 text-sm">{error}</p>;
+  if (logs.length === 0) return <p className="text-gray-400 text-sm">No activity yet.</p>;
+
+  return (
+    <ul className="space-y-1">
+      {logs.map(log => (
+        <li key={log.id} className="flex items-start gap-3 py-2 border-b border-gray-100 last:border-0">
+          <span className={`text-xs font-semibold w-16 shrink-0 pt-0.5 ${ACTION_STYLE[log.action] || 'text-gray-500'}`}>
+            {ACTION_LABEL[log.action] || log.action}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-700 truncate">{log.detail || `${log.entity_type} #${log.entity_id}`}</p>
+            <p className="text-xs text-gray-400">
+              {log.username || 'system'} · {new Date(log.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // ── Main Settings page ─────────────────────────────────────────────────────────
 export default function Settings() {
   const [tab, setTab] = useState(0);
-  const CONTENT = [<PersonsTab />, <MedicationsTab />, <PrescriptionsTab />, <NotificationsTab />];
+  const CONTENT = [<PersonsTab />, <MedicationsTab />, <PrescriptionsTab />, <NotificationsTab />, <ActivityTab />];
 
   return (
     <div className="space-y-6">

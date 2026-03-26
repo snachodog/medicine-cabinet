@@ -21,7 +21,9 @@ def create_prescription(
     _require_access(db, account.id, med.person_id)
     if crud.get_prescription_for_medication(db, payload.medication_id):
         raise HTTPException(status_code=409, detail="Prescription already exists for this medication")
-    return crud.create_prescription(db, payload)
+    rx = crud.create_prescription(db, payload)
+    crud.write_audit(db, "prescription", rx.id, "create", account.id, f"Created prescription for '{med.name}'")
+    return rx
 
 
 @router.get("/{prescription_id}", response_model=schemas.PrescriptionResponse)
@@ -44,7 +46,9 @@ def update_prescription(
 ):
     rx = _get_or_404(db, prescription_id)
     _require_access(db, account.id, rx.medication.person_id)
-    return crud.update_prescription(db, prescription_id, payload)
+    updated = crud.update_prescription(db, prescription_id, payload)
+    crud.write_audit(db, "prescription", prescription_id, "update", account.id, f"Updated prescription for '{rx.medication.name}'")
+    return updated
 
 
 @router.delete("/{prescription_id}", status_code=204)
@@ -56,6 +60,7 @@ def delete_prescription(
     rx = _get_or_404(db, prescription_id)
     _require_access(db, account.id, rx.medication.person_id)
     crud.delete_prescription(db, prescription_id)
+    crud.write_audit(db, "prescription", prescription_id, "delete", account.id, f"Deleted prescription for '{rx.medication.name}'")
 
 
 # ── Fills ─────────────────────────────────────────────────────────────────────
@@ -69,7 +74,9 @@ def log_fill(
 ):
     rx = _get_or_404(db, prescription_id)
     _require_access(db, account.id, rx.medication.person_id)
-    return crud.log_fill(db, prescription_id, payload, account.id)
+    fill = crud.log_fill(db, prescription_id, payload, account.id)
+    crud.write_audit(db, "fill", fill.id, "create", account.id, f"Logged fill for '{rx.medication.name}' on {payload.fill_date}")
+    return fill
 
 
 @router.get("/{prescription_id}/fills", response_model=List[schemas.FillResponse])
