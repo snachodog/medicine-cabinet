@@ -26,7 +26,6 @@ function computeStreak(logs, medicationId) {
       prev.setDate(prev.getDate() - 1);
       expected = prev.toISOString().slice(0, 10);
     } else if (streak === 0 && d === daysAgo(1)) {
-      // allow streak starting yesterday
       streak++;
       const prev = new Date(d);
       prev.setDate(prev.getDate() - 1);
@@ -94,7 +93,7 @@ export default function History() {
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 selectedId === p.id
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-gray-300 text-gray-600 hover:border-blue-400'
+                  : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-blue-400'
               }`}
             >
               {p.name}
@@ -106,7 +105,7 @@ export default function History() {
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {meds.length === 0 && !error && (
-        <p className="text-gray-400 text-sm">No medications found.</p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm">No medications found.</p>
       )}
 
       <ul className="space-y-3">
@@ -116,15 +115,15 @@ export default function History() {
           const isOpen   = !!expanded[med.id];
 
           return (
-            <li key={med.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <li key={med.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
               <button
                 onClick={() => toggleExpand(med.id)}
                 className="w-full flex items-center justify-between px-4 py-3 text-left"
               >
                 <div>
-                  <p className="font-medium text-gray-800">{med.name}</p>
+                  <p className="font-medium text-gray-800 dark:text-gray-100">{med.name}</p>
                   {med.dose_amount && (
-                    <p className="text-xs text-gray-400">{med.dose_amount}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{med.dose_amount}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-3">
@@ -133,21 +132,21 @@ export default function History() {
                       🔥 {streak}-day streak
                     </span>
                   )}
-                  <span className="text-xs text-gray-400">{medLogs.length} doses / 30d</span>
-                  <span className={`text-gray-400 text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{medLogs.length} doses / 30d</span>
+                  <span className={`text-gray-400 dark:text-gray-500 text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
                 </div>
               </button>
 
               {isOpen && (
-                <div className="border-t border-gray-100 px-4 py-3">
+                <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3">
                   {medLogs.length === 0 ? (
-                    <p className="text-sm text-gray-400">No doses logged in the last 30 days.</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">No doses logged in the last 30 days.</p>
                   ) : (
                     <ul className="space-y-1">
                       {medLogs.map(log => (
-                        <li key={log.id} className="flex justify-between text-sm text-gray-600">
+                        <li key={log.id} className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                           <span>{formatDate(log.taken_at)}</span>
-                          <span className="text-gray-400">{formatTime(log.taken_at)}</span>
+                          <span className="text-gray-400 dark:text-gray-500">{formatTime(log.taken_at)}</span>
                         </li>
                       ))}
                     </ul>
