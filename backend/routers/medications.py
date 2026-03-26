@@ -1,67 +1,75 @@
 # backend/routers/medications.py
-# ------------------------------
-# TODO: Add barcode scanning support. Add a GET /medications/barcode/{upc} endpoint
-# that looks up drug info by UPC/NDC from an external API (e.g. Open FDA) and returns
-# a pre-filled medication payload for the frontend to confirm before saving.
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
+
 from .. import crud, schemas, database
 from ..auth import get_current_account
 
-router = APIRouter(
-    prefix="/medications",
-    tags=["medications"]
-)
+router = APIRouter(prefix="/medications", tags=["medications"])
 
-@router.post("/", response_model=schemas.Medication)
+
+@router.post("", response_model=schemas.MedicationResponse, status_code=201)
 def create_medication(
-    medication: schemas.MedicationCreate,
+    payload: schemas.MedicationCreate,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    return crud.create_medication(db=db, medication=medication)
+    _require_access(db, account.id, payload.person_id)
+    return crud.create_medication(db, payload)
 
-@router.get("/", response_model=list[schemas.Medication])
-def read_medications(
-    skip: int = 0,
-    limit: int = 100,
-    search: Optional[str] = None,
+
+@router.get("/person/{person_id}", response_model=List[schemas.MedicationResponse])
+def list_medications(
+    person_id: int,
+    active_only: bool = True,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    return crud.get_medications(db, skip=skip, limit=limit, search=search)
+    _require_access(db, account.id, person_id)
+    return crud.get_medications_for_person(db, person_id, active_only=active_only)
 
-@router.get("/{medication_id}", response_model=schemas.Medication)
-def read_medication(
+
+@router.get("/{medication_id}", response_model=schemas.MedicationResponse)
+def get_medication(
     medication_id: int,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    db_med = crud.get_medication(db, medication_id=medication_id)
-    if db_med is None:
-        raise HTTPException(status_code=404, detail="Medication not found")
-    return db_med
+    med = _get_or_404(db, medication_id)
+    _require_access(db, account.id, med.person_id)
+    return med
 
-@router.put("/{medication_id}", response_model=schemas.Medication)
+
+@router.patch("/{medication_id}", response_model=schemas.MedicationResponse)
 def update_medication(
     medication_id: int,
-    medication: schemas.MedicationUpdate,
+    payload: schemas.MedicationUpdate,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    db_med = crud.update_medication(db, medication_id=medication_id, medication=medication)
-    if db_med is None:
-        raise HTTPException(status_code=404, detail="Medication not found")
-    return db_med
+    med = _get_or_404(db, medication_id)
+    _require_access(db, account.id, med.person_id)
+    return crud.update_medication(db, medication_id, payload)
 
-@router.delete("/{medication_id}", response_model=schemas.Medication)
+
+@router.delete("/{medication_id}", status_code=204)
 def delete_medication(
     medication_id: int,
     db: Session = Depends(database.get_db),
-    _account=Depends(get_current_account),
+    account=Depends(get_current_account),
 ):
-    db_med = crud.delete_medication(db, medication_id=medication_id)
-    if db_med is None:
+    med = _get_or_404(db, medication_id)
+    _require_access(db, account.id, med.person_id)
+    crud.delete_medication(db, medication_id)
+
+
+def _get_or_404(db, medication_id: int):
+    med = crud.get_medication(db, medication_id)
+    if med is None:
         raise HTTPException(status_code=404, detail="Medication not found")
-    return db_med
+    return med
+
+def _require_access(db, account_id: int, person_id: int):
+    if not crud.account_can_access_person(db, account_id, person_id):
+        raise HTTPException(status_code=403, detail="Access denied")
