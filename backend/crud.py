@@ -1,5 +1,5 @@
 # backend/crud.py
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -11,6 +11,9 @@ from . import models, schemas
 
 def get_account_by_username(db: Session, username: str):
     return db.query(models.Account).filter(models.Account.username == username).first()
+
+def get_account_by_id(db: Session, account_id: int):
+    return db.query(models.Account).filter(models.Account.id == account_id).first()
 
 def create_account(db: Session, username: str, hashed_password: str):
     account = models.Account(username=username, hashed_password=hashed_password)
@@ -228,7 +231,7 @@ def get_fills(db: Session, prescription_id: int):
 # ── Dose Log ──────────────────────────────────────────────────────────────────
 
 def log_dose(db: Session, payload: schemas.DoseLogCreate, account_id: int):
-    taken_at = payload.taken_at or datetime.utcnow()
+    taken_at = payload.taken_at or datetime.now(timezone.utc)
     entry = models.DoseLog(
         medication_id=payload.medication_id,
         person_id=payload.person_id,
@@ -348,9 +351,24 @@ def get_audit_logs(
     db: Session,
     entity_type: Optional[str] = None,
     entity_id: Optional[int] = None,
+    scope_to_account_id: Optional[int] = None,
     limit: int = 100,
 ) -> List:
     q = db.query(models.AuditLog).order_by(models.AuditLog.timestamp.desc())
+
+    if scope_to_account_id is not None:
+        # Only show logs from accounts that share at least one person with the requester
+        shared_person_ids = (
+            db.query(models.AccountPersonAccess.person_id)
+            .filter(models.AccountPersonAccess.account_id == scope_to_account_id)
+        )
+        household_account_ids = (
+            db.query(models.AccountPersonAccess.account_id)
+            .filter(models.AccountPersonAccess.person_id.in_(shared_person_ids))
+            .distinct()
+        )
+        q = q.filter(models.AuditLog.account_id.in_(household_account_ids))
+
     if entity_type:
         q = q.filter(models.AuditLog.entity_type == entity_type)
     if entity_id is not None:

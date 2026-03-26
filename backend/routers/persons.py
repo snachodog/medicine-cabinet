@@ -93,6 +93,8 @@ def grant_access(
     if target is None:
         raise HTTPException(status_code=404, detail="No account with that username")
     crud.grant_access(db, target.id, person_id)
+    crud.write_audit(db, "person", person_id, "access_granted", account.id,
+                     f"Granted access to '{target.username}'")
 
 
 @router.delete("/{person_id}/access/{target_account_id}", status_code=204)
@@ -105,7 +107,10 @@ def revoke_access(
     _require_access(db, account.id, person_id)
     if target_account_id == account.id:
         raise HTTPException(status_code=400, detail="Cannot remove your own access")
+    target = crud.get_account_by_id(db, target_account_id)
     crud.revoke_access(db, target_account_id, person_id)
+    crud.write_audit(db, "person", person_id, "access_revoked", account.id,
+                     f"Revoked access from '{target.username if target else target_account_id}'")
 
 
 def _require_access(db, account_id: int, person_id: int):

@@ -4,40 +4,37 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
+// Always send cookies with API requests
+axios.defaults.withCredentials = true;
+
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('mc_token'));
   const [account, setAccount] = useState(null);
-  const [loading, setLoading] = useState(!!localStorage.getItem('mc_token'));
+  const [loading, setLoading] = useState(true);
 
+  // On mount, check if an active session cookie exists
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      axios.get('/api/auth/me')
-        .then(r => setAccount(r.data))
-        .catch(() => { logout(); })
-        .finally(() => setLoading(false));
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      setLoading(false);
-    }
-  }, [token]);
+    axios.get('/api/auth/me')
+      .then(r => setAccount(r.data))
+      .catch(() => setAccount(null))
+      .finally(() => setLoading(false));
+  }, []);
 
-  function login(newToken) {
-    localStorage.setItem('mc_token', newToken);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-    setLoading(true);
-    setToken(newToken);
+  // Called after a successful POST /api/auth/login with the returned AccountResponse
+  function login(accountData) {
+    setAccount(accountData);
   }
 
-  function logout() {
-    localStorage.removeItem('mc_token');
-    delete axios.defaults.headers.common['Authorization'];
-    setToken(null);
+  async function logout() {
+    try {
+      await axios.post('/api/auth/logout');
+    } catch (_) {
+      // Proceed even if the request fails — cookie cleared server-side regardless
+    }
     setAccount(null);
   }
 
   return (
-    <AuthContext.Provider value={{ token, account, loading, login, logout }}>
+    <AuthContext.Provider value={{ account, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
