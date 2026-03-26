@@ -30,15 +30,18 @@ class TokenData(BaseModel):
 
 class PersonCreate(BaseModel):
     name: str
+    allergies: Optional[str] = None
     notes: Optional[str] = None
 
 class PersonUpdate(BaseModel):
     name: Optional[str] = None
+    allergies: Optional[str] = None
     notes: Optional[str] = None
 
 class PersonResponse(BaseModel):
     id: int
     name: str
+    allergies: Optional[str]
     notes: Optional[str]
 
     class Config:

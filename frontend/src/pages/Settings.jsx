@@ -127,26 +127,27 @@ function PersonsTab() {
   const [persons, setPersons]     = useState([]);
   const [modal, setModal]         = useState(null);  // null | 'add' | person-object
   const [sharingFor, setSharingFor] = useState(null); // person-object | null
-  const [name, setName]           = useState('');
-  const [notes, setNotes]         = useState('');
-  const [saving, setSaving]       = useState(false);
-  const [error, setError]         = useState(null);
+  const [name, setName]             = useState('');
+  const [allergies, setAllergies]   = useState('');
+  const [notes, setNotes]           = useState('');
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState(null);
 
   function load() {
     axios.get('/api/persons').then(r => setPersons(r.data));
   }
   useEffect(() => { load(); }, []);
 
-  function openAdd()    { setModal('add'); setName(''); setNotes(''); setError(null); }
-  function openEdit(p)  { setModal(p); setName(p.name); setNotes(p.notes || ''); setError(null); }
+  function openAdd()    { setModal('add'); setName(''); setAllergies(''); setNotes(''); setError(null); }
+  function openEdit(p)  { setModal(p); setName(p.name); setAllergies(p.allergies || ''); setNotes(p.notes || ''); setError(null); }
 
   async function save() {
     setSaving(true);
     try {
       if (modal === 'add') {
-        await axios.post('/api/persons', { name, notes: notes || undefined });
+        await axios.post('/api/persons', { name, allergies: allergies || undefined, notes: notes || undefined });
       } else {
-        await axios.patch(`/api/persons/${modal.id}`, { name, notes: notes || undefined });
+        await axios.patch(`/api/persons/${modal.id}`, { name, allergies: allergies || undefined, notes: notes || undefined });
       }
       setModal(null);
       load();
@@ -177,6 +178,9 @@ function PersonsTab() {
           <li key={p.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div>
               <p className="font-medium text-gray-800">{p.name}</p>
+              {p.allergies && (
+                <p className="text-xs text-red-500 mt-0.5">Allergies: {p.allergies}</p>
+              )}
               {p.notes && <p className="text-xs text-gray-400">{p.notes}</p>}
             </div>
             <div className="flex gap-2">
@@ -193,6 +197,13 @@ function PersonsTab() {
         <div className="space-y-4">
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Field label="Name"><Input value={name} onChange={e => setName(e.target.value)} /></Field>
+          <Field label="Allergies (optional)">
+            <Input
+              value={allergies}
+              onChange={e => setAllergies(e.target.value)}
+              placeholder="e.g. penicillin, sulfa drugs"
+            />
+          </Field>
           <Field label="Notes (optional)"><Input value={notes} onChange={e => setNotes(e.target.value)} /></Field>
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setModal(null)} className="px-4 py-2 text-sm text-gray-600">Cancel</button>
