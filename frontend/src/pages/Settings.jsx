@@ -425,6 +425,7 @@ function PrescriptionsTab() {
   const [prescriptions, setPrescriptions] = useState([]);
   const [persons, setPersons]             = useState([]);
   const [allMeds, setAllMeds]             = useState([]);
+  const [loadError, setLoadError]         = useState(null);
   const [modal, setModal]                 = useState(null);
   const [form, setForm]                   = useState({
     medication_id: '', prescriber: '', pharmacy: '',
@@ -435,32 +436,39 @@ function PrescriptionsTab() {
   const [error, setError]   = useState(null);
 
   async function load() {
-    const [rxRes, pRes] = await Promise.all([
-      axios.get('/api/prescriptions'),
-      axios.get('/api/persons'),
-    ]);
-    setPrescriptions(rxRes.data);
-    const ps = pRes.data;
-    setPersons(ps);
-    const medArrays = await Promise.all(
-      ps.map(p => axios.get(`/api/medications/person/${p.id}`, { params: { active_only: false } }))
-    );
-    const eligible = medArrays.flatMap((r, i) =>
-      r.data
-        .filter(m => m.type === 'rx' || m.type === 'schedule_ii')
-        .map(m => ({ ...m, person_name: ps[i].name }))
-    );
-    setAllMeds(eligible);
+    setLoadError(null);
+    try {
+      const [rxRes, pRes] = await Promise.all([
+        axios.get('/api/prescriptions'),
+        axios.get('/api/persons'),
+      ]);
+      setPrescriptions(rxRes.data);
+      const ps = pRes.data;
+      setPersons(ps);
+      const medArrays = await Promise.all(
+        ps.map(p => axios.get(`/api/medications/person/${p.id}`, { params: { active_only: false } }))
+      );
+      const eligible = medArrays.flatMap((r, i) =>
+        r.data
+          .filter(m => m.type === 'rx' || m.type === 'schedule_ii')
+          .map(m => ({ ...m, person_name: ps[i].name, person_id: ps[i].id }))
+      );
+      setAllMeds(eligible);
+    } catch (e) {
+      setLoadError(e.response?.data?.detail || 'Could not load prescriptions.');
+    }
   }
 
   useEffect(() => { load(); }, []);
 
   function openAdd() {
+    setError(null);
     setModal('add');
     setForm({ medication_id: '', prescriber: '', pharmacy: '', days_supply: 30, scripts_remaining: 6, last_fill_date: '', next_eligible_date: '' });
   }
 
   function openEdit(rx) {
+    setError(null);
     setModal(rx);
     setForm({
       medication_id: rx.medication_id,
@@ -506,8 +514,15 @@ function PrescriptionsTab() {
 
   const untracked = allMeds.filter(m => !prescriptions.find(rx => rx.medication_id === m.id));
 
+  // Build per-person groups for the medication dropdown
+  const untrackedByPerson = persons
+    .map(p => ({ person: p, meds: untracked.filter(m => m.person_id === p.id) }))
+    .filter(g => g.meds.length > 0);
+
   return (
     <div className="space-y-4">
+      {loadError && <p className="text-red-500 text-sm">{loadError}</p>}
+
       <div className="flex justify-between items-center">
         <p className="text-sm text-gray-500">{prescriptions.length} prescription{prescriptions.length !== 1 ? 's' : ''} tracked</p>
         <button onClick={openAdd} className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
@@ -520,9 +535,8 @@ function PrescriptionsTab() {
           <li key={rx.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-medium text-gray-800">{rx.medication_name}
-                  <span className="ml-2 text-xs text-gray-400">{rx.person_name}</span>
-                </p>
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-0.5">{rx.person_name}</p>
+                <p className="font-medium text-gray-800">{rx.medication_name}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Scripts remaining: {rx.scripts_remaining} · {rx.days_supply}d supply
                   {rx.prescriber ? ` · Dr. ${rx.prescriber}` : ''}
@@ -537,18 +551,32 @@ function PrescriptionsTab() {
         ))}
       </ul>
 
-      <Modal isOpen={!!modal} onClose={() => setModal(null)} title={modal === 'add' ? 'Add prescription' : 'Edit prescription'}>
+      <Modal isOpen={!!modal} onClose={() => setModal(null)} title={modal === 'add' ? 'Add prescription' : `Edit prescription${modal?.person_name ? ` — ${modal.person_name}` : ''}`}>
         <div className="space-y-4">
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           {modal === 'add' && (
             <Field label="Medication">
-              <Select value={form.medication_id} onChange={e => setForm(f => ({ ...f, medication_id: e.target.value }))}>
-                <option value="">Select…</option>
-                {untracked.map(m => (
-                  <option key={m.id} value={m.id}>{m.name} ({m.person_name})</option>
-                ))}
-              </Select>
+              {allMeds.length === 0 ? (
+                <p className="text-sm text-amber-600 py-2">
+                  No Rx or Schedule II medications found. Add them in the Medications tab first.
+                </p>
+              ) : untracked.length === 0 ? (
+                <p className="text-sm text-gray-500 py-2">
+                  All eligible medications already have prescriptions.
+                </p>
+              ) : (
+                <Select value={form.medication_id} onChange={e => setForm(f => ({ ...f, medication_id: e.target.value }))}>
+                  <option value="">Select a medication…</option>
+                  {untrackedByPerson.map(({ person, meds }) => (
+                    <optgroup key={person.id} label={person.name}>
+                      {meds.map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </Select>
+              )}
             </Field>
           )}
 
