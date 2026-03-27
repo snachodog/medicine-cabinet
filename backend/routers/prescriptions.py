@@ -26,6 +26,22 @@ def create_prescription(
     return rx
 
 
+@router.get("/medication/{medication_id}", response_model=schemas.PrescriptionResponse)
+def get_prescription_by_medication(
+    medication_id: int,
+    db: Session = Depends(database.get_db),
+    account=Depends(get_current_account),
+):
+    med = crud.get_medication(db, medication_id)
+    if med is None:
+        raise HTTPException(status_code=404, detail="Medication not found")
+    _require_access(db, account.id, med.person_id)
+    rx = crud.get_prescription_for_medication(db, medication_id)
+    if rx is None:
+        raise HTTPException(status_code=404, detail="No prescription for this medication")
+    return rx
+
+
 @router.get("/{prescription_id}", response_model=schemas.PrescriptionResponse)
 def get_prescription(
     prescription_id: int,
@@ -113,6 +129,8 @@ def list_prescriptions(
                     scripts_remaining=rx.scripts_remaining,
                     last_fill_date=rx.last_fill_date,
                     next_eligible_date=rx.next_eligible_date,
+                    expiration_date=rx.expiration_date,
+                    co_pay=rx.co_pay,
                     notes=rx.notes,
                     medication_name=med.name,
                     medication_type=med.type,
