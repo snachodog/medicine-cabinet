@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD041 -->
 [![Dependabot Updates](https://github.com/snachodog/medicine-cabinet/actions/workflows/dependabot/dependabot-updates/badge.svg?branch=main)](https://github.com/snachodog/medicine-cabinet/actions/workflows/dependabot/dependabot-updates)
 
 # Medicine Cabinet
@@ -15,18 +16,18 @@ Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medication
 - **Multi-person households** — manage medications for multiple people under one account
 - **Household sharing** — grant other accounts access to a person's records by username; revoke at any time
 - **Person profiles** — store allergies and notes per household member
-- **Allergy tracking** — allergy information is prominently displayed and exported to PDF
+- **Allergy tracking** — allergy information is prominently displayed and included in PDF exports
 
 ### Medications & Prescriptions
 
-- **Medication management** — create, edit, and delete medications with name, dosage, form, type (OTC/supplement/Rx/Schedule II), schedule, and notes
-- **Prescription tracking** — link prescriptions to people; track fill dates, scripts remaining, next eligible date, prescriber, pharmacy, and co-pay
+- **Medication management** — create, edit, and deactivate medications with name, dosage, type (OTC / supplement / Rx), schedule, and notes
+- **Prescription tracking** — link prescriptions to Rx medications; track fill dates, scripts remaining, next eligible date, expiration date, prescriber, pharmacy, and co-pay
 - **Dose logging** — record when doses are taken; view history per medication
 - **Medication catalog** — search a built-in drug reference to pre-fill medication fields by name or barcode (UPC)
 
 ### Contacts
 
-- **Provider directory** — save prescribers with specialty, phone, and address; autofills prescription forms
+- **Provider directory** — save prescribers with specialty, phone, address, and website; autofills prescription forms
 - **Pharmacy directory** — save pharmacies with contact info; autofills prescription forms
 
 ### Exports & Integrations
@@ -36,16 +37,25 @@ Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medication
 
 ### Notifications & Reminders
 
-- **Refill reminders** — configurable advance notice (days) before a prescription's next eligible pickup date
+- **Email alerts** — receive email warnings 7 and 30 days before a prescription's expiration date (requires SMTP configuration)
+- **ntfy push notifications** — send refill reminders and low-script alerts to any [ntfy](https://ntfy.sh/) topic
+- **Refill reminders** — configurable advance notice before a prescription's next eligible pickup date
 - **Expiration highlighting** — prescriptions approaching or past expiration are flagged in the UI
+
+### Access & Account Management
+
+- **Local accounts** — username/password registration with strength requirements (8+ chars, upper, lower, digit, special)
+- **SSO / OIDC login** — optional single sign-on via any OpenID Connect provider (Google, Authentik, Keycloak, etc.)
+- **Toggleable registration** — open registration (default) or invite-only mode controlled by an environment variable
+- **Invite codes** — logged-in users can generate single-use invite codes with optional expiry; required when registration is closed
+- **Account self-service** — users can change their username and password from the Account settings tab
+- **httpOnly cookie auth** — JWT stored in a secure httpOnly SameSite=Lax cookie; never exposed to JavaScript
+- **Token revocation** — logout invalidates the session token immediately
+- **Rate limiting** — login and registration endpoints are rate-limited to prevent brute force
 
 ### Security & Administration
 
-- **httpOnly cookie auth** — JWT stored in a secure httpOnly SameSite=Lax cookie; never exposed to JavaScript
-- **Token revocation** — logout invalidates the session token immediately
-- **Password policy** — minimum 8 characters with uppercase, lowercase, digit, and special character required at registration
-- **Rate limiting** — login and registration endpoints are rate-limited to prevent brute force
-- **Audit log** — all create/update/delete events are logged and visible to household members
+- **Audit log** — all create/update/delete events are logged and visible to account holders
 - **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` applied on every response
 
 ### Developer / API
@@ -57,15 +67,15 @@ Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medication
 
 ## Tech Stack
 
-| Layer        | Technology                             |
-|--------------|----------------------------------------|
-| Frontend     | React 18 + React Router + Tailwind CSS |
-| Backend      | FastAPI (Python 3.11)                  |
-| ORM          | SQLAlchemy                             |
-| Migrations   | Alembic (auto-runs on startup)         |
-| Database     | PostgreSQL 15                          |
-| Self-hosting | Docker + Docker Compose                |
-| Image        | `dogiakos/medicine-cabinet:latest`     |
+| Layer        | Technology                                 |
+|--------------|--------------------------------------------|
+| Frontend     | React 18 + React Router 7 + Tailwind CSS 4 |
+| Backend      | FastAPI (Python 3.12)                      |
+| ORM          | SQLAlchemy                                 |
+| Migrations   | Alembic (auto-runs on startup)             |
+| Database     | PostgreSQL 15                              |
+| Self-hosting | Docker + Docker Compose                    |
+| Image        | `dogiakos/medicine-cabinet:latest`         |
 
 ---
 
@@ -79,6 +89,7 @@ Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medication
 
 ```bash
 curl -O https://raw.githubusercontent.com/snachodog/medicine-cabinet/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/snachodog/medicine-cabinet/main/.env.example
 ```
 
 Or clone the repo:
@@ -94,14 +105,14 @@ cd medicine-cabinet
 cp .env.example .env
 ```
 
-Edit `.env` with secure values. Generate strong secrets with:
+Edit `.env`. At minimum, set secure values for the database password and JWT secret:
 
 ```bash
 openssl rand -hex 24   # for POSTGRES_PASSWORD
 openssl rand -hex 32   # for SECRET_KEY
 ```
 
-Your `.env` should look like:
+Your minimal `.env`:
 
 ```env
 POSTGRES_PASSWORD=your-strong-password
@@ -111,20 +122,22 @@ SECRET_KEY=your-long-random-secret
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
+See the [Configuration reference](#configuration-reference) below for all available options.
+
 ### 3. Start
 
 ```bash
 docker compose up -d
 ```
 
-The app container pulls from `dogiakos/medicine-cabinet:latest`. Database migrations run automatically on startup.
+Database migrations run automatically on startup.
 
 ### 4. Open the app
 
 - **App:** <http://localhost:8000>
 - **API docs:** <http://localhost:8000/api/docs>
 
-Register an account on first visit.
+Register the first account on the login page.
 
 ### Updating
 
@@ -133,15 +146,65 @@ docker compose pull
 docker compose up -d
 ```
 
+Migrations are applied automatically — no manual steps required between versions.
+
+---
+
+## Configuration Reference
+
+All configuration is via environment variables in `.env`. Only the required variables are needed for basic operation; everything else is optional.
+
+### Required
+
+| Variable            | Description                                   |
+|---------------------|-----------------------------------------------|
+| `POSTGRES_PASSWORD` | Database password                             |
+| `SECRET_KEY`        | JWT signing secret — use a long random string |
+
+### Optional — Core
+
+| Variable                      | Default          | Description                                          |
+|-------------------------------|------------------|------------------------------------------------------|
+| `POSTGRES_USER`               | `medicabinet`    | Database username                                    |
+| `POSTGRES_DB`                 | `medicabinet_db` | Database name                                        |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60`             | How long login sessions last                         |
+| `REGISTRATION_ENABLED`        | `true`           | Set to `false` to require an invite code to register |
+
+### Optional — SSO / OIDC
+
+All three OIDC variables must be set to enable SSO. The login page shows an SSO button automatically when enabled.
+
+| Variable             | Description                                              |
+|----------------------|----------------------------------------------------------|
+| `OIDC_ISSUER`        | Provider discovery base URL (e.g. accounts.google.com)   |
+| `OIDC_CLIENT_ID`     | Client ID from your identity provider                    |
+| `OIDC_CLIENT_SECRET` | Client secret from your identity provider                |
+| `OIDC_PROVIDER_NAME` | Label shown on the SSO button (default: `SSO`)           |
+| `OIDC_SCOPES`        | Space-separated scopes (default: `openid email profile`) |
+
+Your identity provider's redirect URI must be set to:
+
+```text
+http(s)://your-domain/api/auth/oidc/callback
+```
+
+### Optional — Email notifications
+
+All five SMTP variables must be set to enable email alerts.
+
+| Variable        | Description                                        |
+|-----------------|----------------------------------------------------|
+| `SMTP_HOST`     | SMTP server hostname, e.g. `smtp.gmail.com`        |
+| `SMTP_PORT`     | SMTP port (default: `587`)                         |
+| `SMTP_USER`     | SMTP login username                                |
+| `SMTP_PASSWORD` | SMTP login password                                |
+| `SMTP_FROM`     | From address for outgoing emails                   |
+
+Once configured, users opt in per-account under **Settings → Notifications** and provide their email address there.
+
 ---
 
 ## Roadmap
-
-### In progress / next up
-
-- [ ] **Email notifications** — refill reminders and expiration alerts delivered by email (#13)
-- [ ] **Expanded scheduling options** — support for every-N-days, weekly, and PRN dose schedules beyond morning/evening/as-needed (#21)
-- [ ] **Remove Schedule II from medication type list** — reconsider type taxonomy (#28)
 
 ### Future ideas
 
@@ -149,6 +212,7 @@ docker compose up -d
 - [ ] Dashboard view — expiring prescriptions, upcoming refills, recent activity at a glance
 - [ ] Mobile PWA — offline-capable client for logging doses on the go
 - [ ] Barcode scanning — camera-based UPC lookup to pre-fill medication fields in the UI
+- [ ] Password reset via email
 
 ---
 
@@ -156,7 +220,7 @@ docker compose up -d
 
 Medicine Cabinet is designed to be **self-hosted** so sensitive health data stays on your own machine or server and never passes through a third-party service. You control the database, the backups, and the access.
 
-Tokens are stored in httpOnly cookies and never accessible to JavaScript. All data is scoped to authenticated accounts, and household sharing requires an explicit grant by an existing member.
+Tokens are stored in httpOnly cookies and never accessible to JavaScript. All data is scoped to authenticated accounts, and household sharing requires an explicit grant by an existing member. OIDC accounts are linked by verified email address; no unverified auto-provisioning occurs.
 
 ---
 
