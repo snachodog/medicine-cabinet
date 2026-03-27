@@ -1,10 +1,10 @@
 # backend/routers/persons.py
 from datetime import date as date_type
-from io import BytesIO
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -143,29 +143,29 @@ def export_person_pdf(
 
     # ── Header ────────────────────────────────────────────────────────────────
     pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(0, 10, "Medication Report", ln=True)
+    pdf.cell(0, 10, "Medication Report", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, person.name, ln=True)
+    pdf.cell(0, 8, person.name, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font("Helvetica", "", 9)
-    pdf.cell(0, 5, f"Generated: {date_type.today().strftime('%B %d, %Y')}", ln=True)
+    pdf.cell(0, 5, f"Generated: {date_type.today().strftime('%B %d, %Y')}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(3)
 
     # ── Allergies ─────────────────────────────────────────────────────────────
     if person.allergies:
         pdf.set_fill_color(255, 230, 230)
         pdf.set_font("Helvetica", "B", 10)
-        pdf.cell(0, 7, f"  Allergies: {person.allergies}", ln=True, fill=True)
+        pdf.cell(0, 7, f"  Allergies: {person.allergies}", fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(2)
     elif person.notes:
         pdf.set_font("Helvetica", "I", 9)
-        pdf.cell(0, 6, f"Notes: {person.notes}", ln=True)
+        pdf.cell(0, 6, f"Notes: {person.notes}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(2)
 
     # ── Medications table ─────────────────────────────────────────────────────
     pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 7, "Current Medications", ln=True)
+    pdf.cell(0, 7, "Current Medications", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(1)
 
     # Column widths (total = 180mm usable width)
@@ -178,7 +178,7 @@ def export_person_pdf(
     pdf.cell(col["sched"],   6, "Schedule",        border=1, fill=True)
     pdf.cell(col["prescriber"], 6, "Prescriber",   border=1, fill=True)
     pdf.cell(col["rx"],      6, "Scripts / Next fill", border=1, fill=True)
-    pdf.cell(col["last"],    6, "Last taken",      border=1, fill=True, ln=True)
+    pdf.cell(col["last"],    6, "Last taken",      border=1, fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font("Helvetica", "", 8)
     fill = False
@@ -199,12 +199,12 @@ def export_person_pdf(
         pdf.cell(col["sched"],      6, med.schedule,            border=1, fill=fill)
         pdf.cell(col["prescriber"], 6, prescriber[:22],         border=1, fill=fill)
         pdf.cell(col["rx"],         6, rx_cell[:22],            border=1, fill=fill)
-        pdf.cell(col["last"],       6, last,                    border=1, fill=fill, ln=True)
+        pdf.cell(col["last"],       6, last,                    border=1, fill=fill, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         fill = not fill
 
     pdf.ln(5)
     pdf.set_font("Helvetica", "I", 7)
-    pdf.cell(0, 5, "This report is for informational purposes only. Always follow your provider's instructions.", ln=True)
+    pdf.cell(0, 5, "This report is for informational purposes only. Always follow your provider's instructions.", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf_bytes = pdf.output()
     filename = f"{person.name.replace(' ', '_')}_medications.pdf"
