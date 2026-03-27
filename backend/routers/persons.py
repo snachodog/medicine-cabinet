@@ -224,7 +224,11 @@ def export_person_pdf(
     return Response(
         content=bytes(pdf_bytes),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store, private",
+            "Pragma": "no-cache",
+        },
     )
 
 
