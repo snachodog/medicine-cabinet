@@ -186,16 +186,16 @@ def export_person_pdf(
 
     for med in meds:
         rx = med.prescription
-        scripts = str(rx.scripts_remaining) if rx else "—"
-        next_fill = rx.next_eligible_date.strftime("%m/%d/%y") if rx and rx.next_eligible_date else "—"
+        scripts = str(rx.scripts_remaining) if rx else "-"
+        next_fill = rx.next_eligible_date.strftime("%m/%d/%y") if rx and rx.next_eligible_date else "-"
         rx_cell = f"{scripts} scripts / {next_fill}"
-        prescriber = (rx.prescriber or "—") if rx else "—"
+        prescriber = (rx.prescriber or "-") if rx else "-"
         last = (
             recent_doses[med.id].strftime("%m/%d/%y %H:%M")
-            if recent_doses[med.id] else "—"
+            if recent_doses[med.id] else "-"
         )
         pdf.cell(col["name"],       6, med.name[:28],           border=1, fill=fill)
-        pdf.cell(col["dose"],       6, (med.dose_amount or "—")[:14], border=1, fill=fill)
+        pdf.cell(col["dose"],       6, (med.dose_amount or "-")[:14], border=1, fill=fill)
         pdf.cell(col["sched"],      6, med.schedule,            border=1, fill=fill)
         pdf.cell(col["prescriber"], 6, prescriber[:22],         border=1, fill=fill)
         pdf.cell(col["rx"],         6, rx_cell[:22],            border=1, fill=fill)
