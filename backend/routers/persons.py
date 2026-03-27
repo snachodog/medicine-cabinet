@@ -13,6 +13,19 @@ from ..auth import get_current_account
 
 router = APIRouter(prefix="/persons", tags=["persons"])
 
+# Helvetica (built-in fpdf2 font) only supports Latin-1.  Transliterate common
+# Unicode typography first, then drop anything still outside the range.
+_UNICODE_MAP = str.maketrans({
+    "\u2018": "'", "\u2019": "'",   # curly single quotes -> straight
+    "\u201c": '"', "\u201d": '"',   # curly double quotes -> straight
+    "\u2013": "-", "\u2014": "-",   # en-dash / em-dash -> hyphen
+    "\u2026": "...",                # ellipsis -> three dots
+    "\u00a0": " ",                  # non-breaking space -> space
+})
+
+def _safe(text: str) -> str:
+    return text.translate(_UNICODE_MAP).encode("latin-1", errors="ignore").decode("latin-1")
+
 
 @router.post("", response_model=schemas.PersonResponse, status_code=201)
 def create_person(
@@ -146,7 +159,7 @@ def export_person_pdf(
     pdf.cell(0, 10, "Medication Report", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, person.name, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, _safe(person.name), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font("Helvetica", "", 9)
     pdf.cell(0, 5, f"Generated: {date_type.today().strftime('%B %d, %Y')}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -156,11 +169,11 @@ def export_person_pdf(
     if person.allergies:
         pdf.set_fill_color(255, 230, 230)
         pdf.set_font("Helvetica", "B", 10)
-        pdf.cell(0, 7, f"  Allergies: {person.allergies}", fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 7, f"  Allergies: {_safe(person.allergies)}", fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(2)
     elif person.notes:
         pdf.set_font("Helvetica", "I", 9)
-        pdf.cell(0, 6, f"Notes: {person.notes}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 6, f"Notes: {_safe(person.notes)}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(2)
 
     # ── Medications table ─────────────────────────────────────────────────────
@@ -189,16 +202,16 @@ def export_person_pdf(
         scripts = str(rx.scripts_remaining) if rx else "-"
         next_fill = rx.next_eligible_date.strftime("%m/%d/%y") if rx and rx.next_eligible_date else "-"
         rx_cell = f"{scripts} scripts / {next_fill}"
-        prescriber = (rx.prescriber or "-") if rx else "-"
+        prescriber = _safe((rx.prescriber or "-") if rx else "-")
         last = (
             recent_doses[med.id].strftime("%m/%d/%y %H:%M")
             if recent_doses[med.id] else "-"
         )
-        pdf.cell(col["name"],       6, med.name[:28],           border=1, fill=fill)
-        pdf.cell(col["dose"],       6, (med.dose_amount or "-")[:14], border=1, fill=fill)
-        pdf.cell(col["sched"],      6, med.schedule,            border=1, fill=fill)
-        pdf.cell(col["prescriber"], 6, prescriber[:22],         border=1, fill=fill)
-        pdf.cell(col["rx"],         6, rx_cell[:22],            border=1, fill=fill)
+        pdf.cell(col["name"],       6, _safe(med.name)[:28],           border=1, fill=fill)
+        pdf.cell(col["dose"],       6, _safe(med.dose_amount or "-")[:14], border=1, fill=fill)
+        pdf.cell(col["sched"],      6, _safe(med.schedule),            border=1, fill=fill)
+        pdf.cell(col["prescriber"], 6, prescriber[:22],                border=1, fill=fill)
+        pdf.cell(col["rx"],         6, _safe(rx_cell)[:22],            border=1, fill=fill)
         pdf.cell(col["last"],       6, last,                    border=1, fill=fill, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         fill = not fill
 
@@ -207,7 +220,7 @@ def export_person_pdf(
     pdf.cell(0, 5, "This report is for informational purposes only. Always follow your provider's instructions.", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf_bytes = pdf.output()
-    filename = f"{person.name.replace(' ', '_')}_medications.pdf"
+    filename = f"{_safe(person.name).replace(' ', '_')}_medications.pdf"
     return Response(
         content=bytes(pdf_bytes),
         media_type="application/pdf",
