@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 const SCHEDULE_ORDER = ['morning', 'twice_daily', 'evening', 'three_times_daily', 'every_other_day', 'weekly', 'monthly', 'as_needed'];
@@ -38,6 +38,8 @@ export default function Today() {
       .catch(() => setError('Could not load persons.'));
   }, []);
 
+  const loadedDay = useRef(todayISO());
+
   const loadData = useCallback(() => {
     if (!selectedId) return;
     const medsReq = axios.get(`/api/medications/person/${selectedId}`);
@@ -53,6 +55,24 @@ export default function Today() {
   }, [selectedId]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Refresh when the calendar day rolls over — covers returning to the tab and
+  // staying on the page through midnight.
+  useEffect(() => {
+    function checkRollover() {
+      const today = todayISO();
+      if (today !== loadedDay.current) {
+        loadedDay.current = today;
+        loadData();
+      }
+    }
+    document.addEventListener('visibilitychange', checkRollover);
+    const timer = setInterval(checkRollover, 60_000);
+    return () => {
+      document.removeEventListener('visibilitychange', checkRollover);
+      clearInterval(timer);
+    };
+  }, [loadData]);
 
   // Returns all logs for a medication taken today (PRN may have multiple)
   function takenTodayLogs(medicationId) {
