@@ -3,7 +3,7 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 
-const TABS = ['Persons', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Invites', 'Activity'];
+const TABS = ['Persons', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Invites', 'Account', 'Activity'];
 const SCHEDULES = ['morning', 'twice_daily', 'evening', 'three_times_daily', 'every_other_day', 'weekly', 'monthly', 'as_needed'];
 const SCHEDULE_LABEL_MAP = {
   morning: 'Morning', twice_daily: 'Twice Daily', evening: 'Evening',
@@ -1198,10 +1198,110 @@ function InvitesTab() {
   );
 }
 
+// ── Account tab ────────────────────────────────────────────────────────────────
+function AccountTab() {
+  const { account, login } = useAuth();
+  const [username, setUsername] = useState('');
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [usernameMsg, setUsernameMsg] = useState(null); // { ok, text }
+
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMsg, setPwMsg] = useState(null);
+
+  useEffect(() => {
+    if (account) setUsername(account.username);
+  }, [account]);
+
+  async function saveUsername() {
+    setUsernameSaving(true);
+    setUsernameMsg(null);
+    try {
+      const res = await axios.patch('/api/auth/me', { username });
+      login(res.data);
+      setUsernameMsg({ ok: true, text: 'Username updated.' });
+    } catch (e) {
+      setUsernameMsg({ ok: false, text: e.response?.data?.detail || 'Could not update username.' });
+    } finally {
+      setUsernameSaving(false);
+    }
+  }
+
+  async function savePassword(e) {
+    e.preventDefault();
+    if (pw.next !== pw.confirm) {
+      setPwMsg({ ok: false, text: 'New passwords do not match.' });
+      return;
+    }
+    setPwSaving(true);
+    setPwMsg(null);
+    try {
+      await axios.post('/api/auth/me/password', { current_password: pw.current, new_password: pw.next });
+      setPw({ current: '', next: '', confirm: '' });
+      setPwMsg({ ok: true, text: 'Password changed.' });
+    } catch (e) {
+      setPwMsg({ ok: false, text: e.response?.data?.detail || 'Could not change password.' });
+    } finally {
+      setPwSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-8 max-w-md">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Username</h3>
+        <div className="flex gap-2">
+          <Input
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            placeholder="Username"
+            className="flex-1"
+          />
+          <button
+            onClick={saveUsername}
+            disabled={usernameSaving || username === account?.username}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50"
+          >
+            {usernameSaving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+        {usernameMsg && (
+          <p className={`mt-2 text-sm ${usernameMsg.ok ? 'text-green-600' : 'text-red-500'}`}>{usernameMsg.text}</p>
+        )}
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Change password</h3>
+        <form onSubmit={savePassword} className="space-y-3">
+          <Field label="Current password">
+            <Input type="password" value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} autoComplete="current-password" required />
+          </Field>
+          <Field label="New password">
+            <Input type="password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} autoComplete="new-password" required />
+          </Field>
+          <Field label="Confirm new password">
+            <Input type="password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} autoComplete="new-password" required />
+          </Field>
+          {pwMsg && (
+            <p className={`text-sm ${pwMsg.ok ? 'text-green-600' : 'text-red-500'}`}>{pwMsg.text}</p>
+          )}
+          <button
+            type="submit"
+            disabled={pwSaving}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50"
+          >
+            {pwSaving ? 'Saving…' : 'Change password'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Settings page ─────────────────────────────────────────────────────────
 export default function Settings() {
   const [tab, setTab] = useState(0);
-  const CONTENT = [<PersonsTab />, <MedicationsTab />, <PrescriptionsTab />, <ContactsTab />, <NotificationsTab />, <InvitesTab />, <ActivityTab />];
+  const CONTENT = [<PersonsTab />, <MedicationsTab />, <PrescriptionsTab />, <ContactsTab />, <NotificationsTab />, <InvitesTab />, <AccountTab />, <ActivityTab />];
 
   return (
     <div className="space-y-6">
