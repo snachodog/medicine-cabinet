@@ -4,7 +4,7 @@ import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-const TABS = ['Persons', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Invites', 'Account', 'Activity'];
+const TABS = ['People', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Invites', 'Account', 'Activity'];
 const SCHEDULES = ['morning', 'twice_daily', 'evening', 'three_times_daily', 'every_other_day', 'weekly', 'monthly', 'as_needed'];
 const SCHEDULE_LABEL_MAP = {
   morning: 'Morning', twice_daily: 'Twice Daily', evening: 'Evening',
@@ -247,8 +247,34 @@ function MedicationsTab() {
   const [form, setForm]               = useState(EMPTY_MED_FORM);
   const [rxForm, setRxForm]           = useState(EMPTY_RX_FORM);
   const [existingRxId, setExistingRxId] = useState(null);
+  const [providerSuggestions, setProviderSuggestions] = useState([]);
+  const [pharmacySuggestions, setPharmacySuggestions] = useState([]);
   const [saving, setSaving]           = useState(false);
   const [error, setError]             = useState(null);
+
+  async function fetchProviderSuggestions(q) {
+    if (q.length < 2) { setProviderSuggestions([]); return; }
+    const r = await axios.get('/api/contacts/providers/search', { params: { q } });
+    setProviderSuggestions(r.data);
+  }
+
+  async function fetchPharmacySuggestions(q) {
+    if (q.length < 2) { setPharmacySuggestions([]); return; }
+    const r = await axios.get('/api/contacts/pharmacies/search', { params: { q } });
+    setPharmacySuggestions(r.data);
+  }
+
+  async function createProvider(name) {
+    const r = await axios.post('/api/contacts/providers', { name });
+    setRxForm(f => ({ ...f, prescriber: r.data.name }));
+    setProviderSuggestions([]);
+  }
+
+  async function createPharmacy(name) {
+    const r = await axios.post('/api/contacts/pharmacies', { name });
+    setRxForm(f => ({ ...f, pharmacy: r.data.name }));
+    setPharmacySuggestions([]);
+  }
 
   useEffect(() => {
     axios.get('/api/persons').then(r => {
@@ -278,6 +304,8 @@ function MedicationsTab() {
     setExistingRxId(null);
     setCatalogQ('');
     setCatalog([]);
+    setProviderSuggestions([]);
+    setPharmacySuggestions([]);
     setError(null);
   }
 
@@ -497,10 +525,74 @@ function MedicationsTab() {
                 </Field>
               </div>
               <Field label="Prescriber (optional)">
-                <Input value={rxForm.prescriber} onChange={e => setRxForm(f => ({ ...f, prescriber: e.target.value }))} placeholder="Dr. Smith" />
+                <div className="relative">
+                  <Input
+                    value={rxForm.prescriber}
+                    onChange={e => { setRxForm(f => ({ ...f, prescriber: e.target.value })); fetchProviderSuggestions(e.target.value); }}
+                    onBlur={() => setTimeout(() => setProviderSuggestions([]), 150)}
+                    placeholder="Start typing to search saved providers…"
+                  />
+                  {(providerSuggestions.length > 0 || (rxForm.prescriber.length >= 2 && !providerSuggestions.find(p => p.name.toLowerCase() === rxForm.prescriber.toLowerCase()))) && (
+                    <ul className="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                      {providerSuggestions.map(p => (
+                        <li key={p.id}>
+                          <button
+                            onMouseDown={() => { setRxForm(f => ({ ...f, prescriber: p.name })); setProviderSuggestions([]); }}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex justify-between"
+                          >
+                            <span>{p.name}</span>
+                            {p.specialty && <span className="text-xs text-gray-400 dark:text-gray-500">{p.specialty}</span>}
+                          </button>
+                        </li>
+                      ))}
+                      {rxForm.prescriber.length >= 2 && !providerSuggestions.find(p => p.name.toLowerCase() === rxForm.prescriber.toLowerCase()) && (
+                        <li>
+                          <button
+                            onMouseDown={() => createProvider(rxForm.prescriber)}
+                            className="w-full text-left px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                          >
+                            + Add "{rxForm.prescriber}" as a new provider
+                          </button>
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
               </Field>
               <Field label="Pharmacy (optional)">
-                <Input value={rxForm.pharmacy} onChange={e => setRxForm(f => ({ ...f, pharmacy: e.target.value }))} placeholder="CVS, Walgreens…" />
+                <div className="relative">
+                  <Input
+                    value={rxForm.pharmacy}
+                    onChange={e => { setRxForm(f => ({ ...f, pharmacy: e.target.value })); fetchPharmacySuggestions(e.target.value); }}
+                    onBlur={() => setTimeout(() => setPharmacySuggestions([]), 150)}
+                    placeholder="Start typing to search saved pharmacies…"
+                  />
+                  {(pharmacySuggestions.length > 0 || (rxForm.pharmacy.length >= 2 && !pharmacySuggestions.find(p => p.name.toLowerCase() === rxForm.pharmacy.toLowerCase()))) && (
+                    <ul className="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                      {pharmacySuggestions.map(p => (
+                        <li key={p.id}>
+                          <button
+                            onMouseDown={() => { setRxForm(f => ({ ...f, pharmacy: p.name })); setPharmacySuggestions([]); }}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex justify-between"
+                          >
+                            <span>{p.name}</span>
+                            {p.phone && <span className="text-xs text-gray-400 dark:text-gray-500">{p.phone}</span>}
+                          </button>
+                        </li>
+                      ))}
+                      {rxForm.pharmacy.length >= 2 && !pharmacySuggestions.find(p => p.name.toLowerCase() === rxForm.pharmacy.toLowerCase()) && (
+                        <li>
+                          <button
+                            onMouseDown={() => createPharmacy(rxForm.pharmacy)}
+                            className="w-full text-left px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                          >
+                            + Add "{rxForm.pharmacy}" as a new pharmacy
+                          </button>
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
               </Field>
               <Field label="Co-pay (optional)">
                 <Input type="number" min="0" step="0.01" value={rxForm.co_pay} onChange={e => setRxForm(f => ({ ...f, co_pay: e.target.value }))} placeholder="0.00" />
