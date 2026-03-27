@@ -1,3 +1,5 @@
+[![Dependabot Updates](https://github.com/snachodog/medicine-cabinet/actions/workflows/dependabot/dependabot-updates/badge.svg?branch=main)](https://github.com/snachodog/medicine-cabinet/actions/workflows/dependabot/dependabot-updates)
+
 # Medicine Cabinet
 
 **Medicine Cabinet** is a self-hosted web app for tracking your household's medications, prescriptions, and dose history — running entirely on your own server.

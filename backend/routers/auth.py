@@ -160,11 +160,37 @@ def me(account=Depends(get_current_account)):
 @router.patch("/me", response_model=schemas.AccountResponse)
 def update_me(
     payload: schemas.AccountUpdate,
+    response: Response,
     db: Session = Depends(database.get_db),
     account=Depends(get_current_account),
 ):
-    for field, value in payload.dict(exclude_unset=True).items():
+    data = payload.dict(exclude_unset=True)
+    if "username" in data and data["username"] != account.username:
+        if crud.get_account_by_username(db, data["username"]):
+            raise HTTPException(status_code=400, detail="Username already taken")
+    for field, value in data.items():
         setattr(account, field, value)
     db.commit()
     db.refresh(account)
+    if "username" in data:
+        token = create_access_token({"sub": account.username})
+        response.set_cookie(
+            key="mc_token",
+            value=token,
+            httponly=True,
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            samesite="lax",
+        )
     return account
+
+
+@router.post("/me/password", status_code=204)
+def change_password(
+    payload: schemas.PasswordChange,
+    db: Session = Depends(database.get_db),
+    account=Depends(get_current_account),
+):
+    if not verify_password(payload.current_password, account.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    account.hashed_password = hash_password(payload.new_password)
+    db.commit()
