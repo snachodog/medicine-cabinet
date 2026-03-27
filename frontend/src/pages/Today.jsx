@@ -14,7 +14,15 @@ const SCHEDULE_LABEL = {
 };
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Extract YYYY-MM-DD in local time from a UTC ISO string so that a dose
+// logged at 10 PM local (which may be UTC-next-day) is not counted as today.
+function localDateOf(isoString) {
+  const d = new Date(isoString);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function formatTime(isoString) {
@@ -78,7 +86,7 @@ export default function Today() {
   function takenTodayLogs(medicationId) {
     const today = todayISO();
     return logs.filter(
-      l => l.medication_id === medicationId && l.taken_at.slice(0, 10) === today
+      l => l.medication_id === medicationId && localDateOf(l.taken_at) === today
     );
   }
 
