@@ -458,6 +458,9 @@ function MedicationsTab() {
               <Select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
                 {MED_TYPES.map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
               </Select>
+              {form.type === 'rx' && (
+                <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">Prescription medications appear in the Refills tracker.</p>
+              )}
             </Field>
             <Field label="Schedule">
               <Select value={form.schedule} onChange={e => setForm(f => ({ ...f, schedule: e.target.value }))}>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router';
 import axios from 'axios';
 
 function daysAgo(n) {
@@ -83,6 +84,11 @@ export default function History() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">History</h2>
+        <span className="text-xs text-gray-400 dark:text-gray-500">Last 30 days</span>
+      </div>
+
       {/* Person tabs */}
       {persons.length > 1 && (
         <div className="flex gap-2 flex-wrap">
@@ -105,7 +111,15 @@ export default function History() {
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {meds.length === 0 && !error && (
-        <p className="text-gray-400 dark:text-gray-500 text-sm">No medications found.</p>
+        <div className="text-center py-10">
+          <p className="text-gray-400 dark:text-gray-500 text-sm mb-3">No medications found. Add medications to start tracking dose history.</p>
+          <Link
+            to="/settings"
+            className="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            Go to Settings
+          </Link>
+        </div>
       )}
 
       <ul className="space-y-3">

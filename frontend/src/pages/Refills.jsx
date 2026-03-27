@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import axios from 'axios';
 import Modal from '../components/Modal';
 
@@ -82,7 +83,16 @@ export default function Refills() {
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {prescriptions.length === 0 && !error && (
-        <p className="text-gray-400 dark:text-gray-500 text-sm">No prescriptions tracked. Add Rx medications in Settings.</p>
+        <div className="text-center py-10">
+          <p className="text-gray-400 dark:text-gray-500 text-sm mb-1">No prescriptions tracked.</p>
+          <p className="text-gray-400 dark:text-gray-500 text-xs mb-3">Add a medication with type set to "Prescription" to start tracking refills.</p>
+          <Link
+            to="/settings"
+            className="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            Go to Settings
+          </Link>
+        </div>
       )}
 
       <ul className="space-y-3">
