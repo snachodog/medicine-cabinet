@@ -142,7 +142,10 @@ export default function History() {
                 </div>
                 <div className="flex items-center gap-3">
                   {streak > 0 && (
-                    <span className="text-sm font-semibold text-orange-500">
+                    <span
+                      className="text-sm font-semibold text-orange-500"
+                      title="Consecutive days with at least one dose logged"
+                    >
                       🔥 {streak}-day streak
                     </span>
                   )}

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const TABS = ['Persons', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Invites', 'Account', 'Activity'];
 const SCHEDULES = ['morning', 'twice_daily', 'evening', 'three_times_daily', 'every_other_day', 'weekly', 'monthly', 'as_needed'];
@@ -129,6 +130,7 @@ function SharingModal({ person, onClose }) {
 
 // ── Persons tab ────────────────────────────────────────────────────────────────
 function PersonsTab() {
+  const showToast = useToast();
   const [persons, setPersons]     = useState([]);
   const [modal, setModal]         = useState(null);  // null | 'add' | person-object
   const [sharingFor, setSharingFor] = useState(null); // person-object | null
@@ -151,8 +153,10 @@ function PersonsTab() {
     try {
       if (modal === 'add') {
         await axios.post('/api/persons', { name, allergies: allergies || undefined, notes: notes || undefined });
+        showToast('Person added');
       } else {
         await axios.patch(`/api/persons/${modal.id}`, { name, allergies: allergies || undefined, notes: notes || undefined });
+        showToast('Person updated');
       }
       setModal(null);
       load();
@@ -233,6 +237,7 @@ const EMPTY_MED_FORM = { name: '', type: 'otc', dose_amount: '', schedule: 'morn
 const EMPTY_RX_FORM  = { prescriber: '', pharmacy: '', days_supply: 30, scripts_remaining: 6, last_fill_date: '', next_eligible_date: '', expiration_date: '', co_pay: '' };
 
 function MedicationsTab() {
+  const showToast = useToast();
   const [persons, setPersons]         = useState([]);
   const [selectedPerson, setSelected] = useState(null);
   const [meds, setMeds]               = useState([]);
@@ -356,6 +361,7 @@ function MedicationsTab() {
 
       setModal(null);
       loadMeds();
+      showToast(modal === 'add' ? 'Medication added' : 'Medication updated');
     } catch (e) {
       setError(e.response?.data?.detail || 'Could not save.');
     } finally {
@@ -533,6 +539,7 @@ function MedicationsTab() {
 
 // ── Prescriptions tab ──────────────────────────────────────────────────────────
 function PrescriptionsTab() {
+  const showToast = useToast();
   const [prescriptions, setPrescriptions] = useState([]);
   const [persons, setPersons]             = useState([]);
   const [allMeds, setAllMeds]             = useState([]);
@@ -618,6 +625,7 @@ function PrescriptionsTab() {
       await axios.patch(`/api/prescriptions/${modal.id}`, body);
       setModal(null);
       load();
+      showToast('Prescription updated');
     } catch (e) {
       setError(e.response?.data?.detail || 'Could not save.');
     } finally {
@@ -635,7 +643,14 @@ function PrescriptionsTab() {
     <div className="space-y-4">
       {loadError && <p className="text-red-500 text-sm">{loadError}</p>}
 
-      <p className="text-sm text-gray-500 dark:text-gray-400">{prescriptions.length} prescription{prescriptions.length !== 1 ? 's' : ''} tracked · add new ones via the Medications tab</p>
+      {prescriptions.length === 0 && !loadError ? (
+        <div className="text-center py-8 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">No prescriptions tracked yet.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Add a medication and set its type to <strong className="font-medium">Prescription</strong> to manage refill details here.</p>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500 dark:text-gray-400">{prescriptions.length} prescription{prescriptions.length !== 1 ? 's' : ''} tracked · add new ones via the Medications tab</p>
+      )}
 
       <ul className="space-y-2">
         {prescriptions.map(rx => (
