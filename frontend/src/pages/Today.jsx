@@ -213,8 +213,16 @@ export default function Today() {
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
-      {personsLoaded && meds.length === 0 && !error && (
-        <SetupChecklist hasPersons={persons.length > 0} hasMeds={false} />
+      {meds.length === 0 && !error && (
+        <div className="text-center py-10">
+          <p className="text-gray-400 dark:text-gray-500 text-sm mb-3">No active medications yet.</p>
+          <Link
+            to="/settings"
+            className="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            Add medications in Settings
+          </Link>
+        </div>
       )}
 
       {/* Scheduled medication groups */}
