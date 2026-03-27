@@ -11,6 +11,7 @@ from datetime import date, datetime
 class AccountCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     password: str
+    invite_code: Optional[str] = None
 
     @validator("username")
     def username_valid(cls, v):
@@ -50,6 +51,20 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+class InviteCodeCreate(BaseModel):
+    expires_in_days: Optional[int] = Field(None, ge=1, le=365)
+
+class InviteCodeResponse(BaseModel):
+    id: int
+    code: str
+    created_at: datetime
+    expires_at: Optional[datetime]
+    used_at: Optional[datetime]
+    used_by_username: Optional[str] = None
+
+    class Config:
+        orm_mode = True
 
 
 # ── Person ────────────────────────────────────────────────────────────────────

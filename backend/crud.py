@@ -15,8 +15,11 @@ def get_account_by_username(db: Session, username: str):
 def get_account_by_id(db: Session, account_id: int):
     return db.query(models.Account).filter(models.Account.id == account_id).first()
 
-def create_account(db: Session, username: str, hashed_password: str):
-    account = models.Account(username=username, hashed_password=hashed_password)
+def get_account_by_email(db: Session, email: str):
+    return db.query(models.Account).filter(models.Account.email == email).first()
+
+def create_account(db: Session, username: str, hashed_password: str, email: str = None):
+    account = models.Account(username=username, hashed_password=hashed_password, email=email)
     db.add(account)
     db.commit()
     db.refresh(account)
@@ -482,3 +485,59 @@ def get_audit_logs(
     if entity_id is not None:
         q = q.filter(models.AuditLog.entity_id == entity_id)
     return q.limit(limit).all()
+
+
+# ── Invite Codes ───────────────────────────────────────────────────────────────
+
+def create_invite_code(db: Session, account_id: int, expires_in_days: Optional[int] = None):
+    import secrets
+    code = secrets.token_urlsafe(12)
+    expires_at = None
+    if expires_in_days:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
+    invite = models.InviteCode(
+        code=code,
+        created_by_account_id=account_id,
+        expires_at=expires_at,
+    )
+    db.add(invite)
+    db.commit()
+    db.refresh(invite)
+    return invite
+
+
+def get_invite_codes_for_account(db: Session, account_id: int) -> List:
+    return (
+        db.query(models.InviteCode)
+        .filter(models.InviteCode.created_by_account_id == account_id)
+        .order_by(models.InviteCode.created_at.desc())
+        .all()
+    )
+
+
+def get_invite_by_code(db: Session, code: str):
+    return db.query(models.InviteCode).filter(models.InviteCode.code == code).first()
+
+
+def consume_invite(db: Session, invite: models.InviteCode, used_by_account_id: int):
+    invite.used_by_account_id = used_by_account_id
+    invite.used_at = datetime.now(timezone.utc)
+    db.commit()
+
+
+def revoke_invite(db: Session, invite_id: int, account_id: int) -> bool:
+    invite = (
+        db.query(models.InviteCode)
+        .filter(
+            models.InviteCode.id == invite_id,
+            models.InviteCode.created_by_account_id == account_id,
+            models.InviteCode.used_at.is_(None),
+        )
+        .first()
+    )
+    if invite is None:
+        return False
+    db.delete(invite)
+    db.commit()
+    return True
+
