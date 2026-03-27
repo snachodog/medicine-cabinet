@@ -13,8 +13,20 @@ const SCHEDULE_LABEL = {
   as_needed:         'As Needed',
 };
 
+// Returns YYYY-MM-DD for today in the browser's local timezone.
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Returns a Date object set to 00:00:00.000 local time today.
+// Comparing log timestamps against this avoids all UTC/string ambiguity —
+// a dose at 11 PM local (which may be UTC-tomorrow) correctly falls before
+// the NEXT day's local midnight and will not show as taken today.
+function localMidnight() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 function formatTime(isoString) {
@@ -76,9 +88,9 @@ export default function Today() {
 
   // Returns all logs for a medication taken today (PRN may have multiple)
   function takenTodayLogs(medicationId) {
-    const today = todayISO();
+    const midnight = localMidnight();
     return logs.filter(
-      l => l.medication_id === medicationId && l.taken_at.slice(0, 10) === today
+      l => l.medication_id === medicationId && new Date(l.taken_at) >= midnight
     );
   }
 
