@@ -35,6 +35,31 @@ class AccountCreate(BaseModel):
 
 class AccountUpdate(BaseModel):
     email: Optional[str] = Field(None, max_length=254)
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
+
+    @validator("username")
+    def username_valid(cls, v):
+        if v and not re.match(r"^[a-zA-Z0-9_.\-]+$", v):
+            raise ValueError("Username may only contain letters, numbers, underscores, hyphens, and dots")
+        return v
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+    @validator("new_password")
+    def password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one number")
+        if not re.search(r"[^A-Za-z0-9]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
 
 class AccountResponse(BaseModel):
     id: int
