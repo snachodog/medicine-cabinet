@@ -8,7 +8,7 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState('login');
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({ username: '', password: '', invite_code: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [config, setConfig] = useState({ registration_enabled: true, oidc_enabled: false, oidc_provider_name: 'SSO' });
@@ -55,7 +55,8 @@ export default function Login() {
     }
   };
 
-  const tabs = config.registration_enabled ? ['login', 'register'] : ['login'];
+  // Show register tab when open OR when closed-but-invite-accessible
+  const tabs = ['login', 'register'];
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
@@ -104,6 +105,16 @@ export default function Login() {
             required
             className="block w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
           />
+          {tab === 'register' && (
+            <input
+              name="invite_code"
+              value={form.invite_code}
+              onChange={handleChange}
+              placeholder={config.registration_enabled ? 'Invite code (optional)' : 'Invite code (required)'}
+              required={!config.registration_enabled}
+              className="block w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+            />
+          )}
           <button
             type="submit"
             disabled={submitting}
