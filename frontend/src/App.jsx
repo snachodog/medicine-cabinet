@@ -67,8 +67,19 @@ function AppShell() {
             Medicine Cabinet
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6">
-            {NAV_LINKS.map(l => <NavLink key={l.to} {...l} />)}
+          <div className="flex items-center gap-4">
+            {account && (
+              <nav className="hidden md:flex items-center gap-6">
+                {NAV_LINKS.map(l => <NavLink key={l.to} {...l} />)}
+                <button
+                  onClick={logout}
+                  className="text-gray-400 hover:text-red-500 text-sm transition-colors"
+                >
+                  Sign out
+                </button>
+              </nav>
+            )}
+
             <button
               onClick={() => setDark(d => !d)}
               className="text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
@@ -76,29 +87,23 @@ function AppShell() {
             >
               {dark ? <SunIcon /> : <MoonIcon />}
             </button>
+
             {account && (
               <button
-                onClick={logout}
-                className="text-gray-400 hover:text-red-500 text-sm transition-colors"
+                className="md:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() => setNavOpen(o => !o)}
+                aria-label="Toggle navigation"
+                aria-expanded={navOpen}
               >
-                Sign out
+                <span className="block w-5 h-0.5 bg-gray-600 dark:bg-gray-300 mb-1" />
+                <span className="block w-5 h-0.5 bg-gray-600 dark:bg-gray-300 mb-1" />
+                <span className="block w-5 h-0.5 bg-gray-600 dark:bg-gray-300" />
               </button>
             )}
-          </nav>
-
-          <button
-            className="md:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-            onClick={() => setNavOpen(o => !o)}
-            aria-label="Toggle navigation"
-            aria-expanded={navOpen}
-          >
-            <span className="block w-5 h-0.5 bg-gray-600 dark:bg-gray-300 mb-1" />
-            <span className="block w-5 h-0.5 bg-gray-600 dark:bg-gray-300 mb-1" />
-            <span className="block w-5 h-0.5 bg-gray-600 dark:bg-gray-300" />
-          </button>
+          </div>
         </div>
 
-        {navOpen && (
+        {account && navOpen && (
           <nav className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 flex flex-col gap-4">
             {NAV_LINKS.map(l => (
               <NavLink key={l.to} {...l} onClick={() => setNavOpen(false)} />
