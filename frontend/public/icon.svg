@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  <clipPath id="lhalf">
+    <rect x="0" y="0" width="256" height="512"/>
+  </clipPath>
+  <!-- Pill: white base -->
+  <rect x="126" y="191" width="260" height="130" rx="65" fill="white"/>
+  <!-- Pill: light-blue left half -->
+  <rect x="126" y="191" width="260" height="130" rx="65" fill="#bfdbfe" clip-path="url(#lhalf)"/>
+  <!-- Divider -->
+  <rect x="253" y="191" width="6" height="130" fill="#2563eb"/>
+</svg>
