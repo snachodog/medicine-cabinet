@@ -3,7 +3,7 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 
-const TABS = ['Persons', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Activity'];
+const TABS = ['Persons', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Invites', 'Activity'];
 const SCHEDULES = ['morning', 'twice_daily', 'evening', 'three_times_daily', 'every_other_day', 'weekly', 'monthly', 'as_needed'];
 const SCHEDULE_LABEL_MAP = {
   morning: 'Morning', twice_daily: 'Twice Daily', evening: 'Evening',
@@ -1073,10 +1073,135 @@ function ActivityTab() {
   );
 }
 
+// ── Invites tab ────────────────────────────────────────────────────────────────
+function InvitesTab() {
+  const [invites, setInvites]   = useState([]);
+  const [expiry, setExpiry]     = useState('');
+  const [creating, setCreating] = useState(false);
+  const [copied, setCopied]     = useState(null);
+
+  function load() {
+    axios.get('/api/auth/invites').then(r => setInvites(r.data));
+  }
+  useEffect(() => { load(); }, []);
+
+  async function create() {
+    setCreating(true);
+    try {
+      await axios.post('/api/auth/invites', { expires_in_days: expiry ? Number(expiry) : null });
+      setExpiry('');
+      load();
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function revoke(id) {
+    if (!confirm('Revoke this invite code?')) return;
+    await axios.delete(`/api/auth/invites/${id}`);
+    load();
+  }
+
+  function copyCode(code) {
+    navigator.clipboard.writeText(code);
+    setCopied(code);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  const pending = invites.filter(i => !i.used_at);
+  const used    = invites.filter(i => i.used_at);
+
+  return (
+    <div className="space-y-5 max-w-lg">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Generate invite code</h3>
+        <div className="flex gap-3 items-end">
+          <div className="flex-1">
+            <Field label="Expires in (days, optional)">
+              <Input
+                type="number"
+                min="1"
+                max="365"
+                value={expiry}
+                onChange={e => setExpiry(e.target.value)}
+                placeholder="No expiry"
+              />
+            </Field>
+          </div>
+          <button
+            onClick={create}
+            disabled={creating}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50 whitespace-nowrap"
+          >
+            {creating ? 'Generating…' : 'Generate code'}
+          </button>
+        </div>
+      </div>
+
+      {pending.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Pending</h3>
+          <ul className="space-y-2">
+            {pending.map(inv => (
+              <li key={inv.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <code className="text-sm font-mono text-gray-800 dark:text-gray-100 break-all">{inv.code}</code>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => copyCode(inv.code)}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      {copied === inv.code ? 'Copied!' : 'Copy'}
+                    </button>
+                    <button
+                      onClick={() => revoke(inv.id)}
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      Revoke
+                    </button>
+                  </div>
+                </div>
+                {inv.expires_at && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    Expires {new Date(inv.expires_at).toLocaleDateString()}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {used.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Used</h3>
+          <ul className="space-y-2">
+            {used.map(inv => (
+              <li key={inv.id} className="bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-3 opacity-70">
+                <div className="flex items-center justify-between gap-3">
+                  <code className="text-sm font-mono text-gray-500 dark:text-gray-400 break-all">{inv.code}</code>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">Used by {inv.used_by_username}</span>
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  {new Date(inv.used_at).toLocaleString()}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {invites.length === 0 && (
+        <p className="text-sm text-gray-400 dark:text-gray-500">No invite codes yet. Generate one above to share with someone.</p>
+      )}
+    </div>
+  );
+}
+
 // ── Main Settings page ─────────────────────────────────────────────────────────
 export default function Settings() {
   const [tab, setTab] = useState(0);
-  const CONTENT = [<PersonsTab />, <MedicationsTab />, <PrescriptionsTab />, <ContactsTab />, <NotificationsTab />, <ActivityTab />];
+  const CONTENT = [<PersonsTab />, <MedicationsTab />, <PrescriptionsTab />, <ContactsTab />, <NotificationsTab />, <InvitesTab />, <ActivityTab />];
 
   return (
     <div className="space-y-6">
