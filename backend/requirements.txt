@@ -12,3 +12,4 @@ slowapi
 fpdf2
 icalendar
 apscheduler
+httpx

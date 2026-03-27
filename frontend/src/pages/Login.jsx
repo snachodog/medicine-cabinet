@@ -1,5 +1,5 @@
 // frontend/src/pages/Login.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,20 @@ export default function Login() {
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [config, setConfig] = useState({ registration_enabled: true, oidc_enabled: false, oidc_provider_name: 'SSO' });
+
+  useEffect(() => {
+    // Check URL for OIDC error param
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'oidc_denied') setError('SSO login was cancelled or denied.');
+    if (params.get('error') === 'account_disabled') setError('Your account is disabled.');
+
+    axios.get('/api/auth/config').then(r => {
+      setConfig(r.data);
+      // If register tab is open but registration just got disabled, switch to login
+      if (!r.data.registration_enabled) setTab('login');
+    }).catch(() => {});
+  }, []);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -41,13 +55,15 @@ export default function Login() {
     }
   };
 
+  const tabs = config.registration_enabled ? ['login', 'register'] : ['login'];
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md w-full max-w-sm p-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Medicine Cabinet</h1>
 
         <div className="flex border-b border-gray-200 dark:border-gray-700 mb-5">
-          {['login', 'register'].map(t => (
+          {tabs.map(t => (
             <button
               key={t}
               onClick={() => { setTab(t); setError(''); }}
@@ -96,6 +112,22 @@ export default function Login() {
             {submitting ? 'Please wait…' : tab === 'login' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
+
+        {config.oidc_enabled && (
+          <div className="mt-4">
+            <div className="relative flex items-center my-3">
+              <div className="flex-grow border-t border-gray-200 dark:border-gray-700" />
+              <span className="mx-3 text-xs text-gray-400 dark:text-gray-500">or</span>
+              <div className="flex-grow border-t border-gray-200 dark:border-gray-700" />
+            </div>
+            <a
+              href="/api/auth/oidc/login"
+              className="flex items-center justify-center w-full py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Sign in with {config.oidc_provider_name}
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

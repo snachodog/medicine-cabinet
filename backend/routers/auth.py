@@ -1,7 +1,8 @@
 # backend/routers/auth.py
 # -----------------------
-# Authentication endpoints: register, login, logout, me
+# Authentication endpoints: register, login, logout, me, config
 
+import os
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -15,15 +16,30 @@ from ..auth import (
 )
 from ..limiter import limiter
 
+REGISTRATION_ENABLED = os.getenv("REGISTRATION_ENABLED", "true").lower() == "true"
+
 router = APIRouter(
     prefix="/auth",
     tags=["auth"]
 )
 
 
+@router.get("/config")
+def get_config():
+    """Public endpoint — lets the frontend adapt its UI to server configuration."""
+    from .oidc import OIDC_CONFIGURED
+    return {
+        "registration_enabled": REGISTRATION_ENABLED,
+        "oidc_enabled": OIDC_CONFIGURED,
+        "oidc_provider_name": os.getenv("OIDC_PROVIDER_NAME", "SSO"),
+    }
+
+
 @router.post("/register", response_model=schemas.AccountResponse, status_code=201)
 @limiter.limit("5/minute")
 def register(request: Request, payload: schemas.AccountCreate, db: Session = Depends(database.get_db)):
+    if not REGISTRATION_ENABLED:
+        raise HTTPException(status_code=403, detail="Registration is currently disabled")
     if crud.get_account_by_username(db, payload.username):
         raise HTTPException(status_code=400, detail="Username already registered")
     account = crud.create_account(db, payload.username, hash_password(payload.password))

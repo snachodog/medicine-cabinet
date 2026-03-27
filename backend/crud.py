@@ -15,8 +15,11 @@ def get_account_by_username(db: Session, username: str):
 def get_account_by_id(db: Session, account_id: int):
     return db.query(models.Account).filter(models.Account.id == account_id).first()
 
-def create_account(db: Session, username: str, hashed_password: str):
-    account = models.Account(username=username, hashed_password=hashed_password)
+def get_account_by_email(db: Session, email: str):
+    return db.query(models.Account).filter(models.Account.email == email).first()
+
+def create_account(db: Session, username: str, hashed_password: str, email: str = None):
+    account = models.Account(username=username, hashed_password=hashed_password, email=email)
     db.add(account)
     db.commit()
     db.refresh(account)
