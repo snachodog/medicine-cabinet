@@ -34,6 +34,63 @@ function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
+function SetupChecklist({ hasPersons, hasMeds }) {
+  const steps = [
+    {
+      label: 'Add a person',
+      hint: 'Add yourself or a family member to track medications for.',
+      done: hasPersons,
+    },
+    {
+      label: 'Add your medications',
+      hint: 'Go to Settings and add medications under the Medications tab.',
+      done: hasMeds,
+      locked: !hasPersons,
+    },
+    {
+      label: 'Log your first dose',
+      hint: "Once your medications are added, use the 'Took it' buttons that appear here.",
+      done: false,
+      locked: !hasMeds,
+    },
+  ];
+
+  return (
+    <div className="rounded-xl border border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/20 px-5 py-4 space-y-4">
+      <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Get started with Medicine Cabinet</p>
+      <ol className="space-y-3">
+        {steps.map((step, i) => (
+          <li key={i} className={`flex items-start gap-3 ${step.locked ? 'opacity-40' : ''}`}>
+            <span className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
+              step.done
+                ? 'bg-green-500 border-green-500 text-white'
+                : 'border-gray-400 dark:border-gray-500 text-gray-400'
+            }`}>
+              {step.done ? '✓' : i + 1}
+            </span>
+            <div>
+              <p className={`text-sm font-medium ${step.done ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-100'}`}>
+                {step.label}
+              </p>
+              {!step.done && !step.locked && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{step.hint}</p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+      {!hasMeds && (
+        <Link
+          to="/settings"
+          className="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+        >
+          {!hasPersons ? 'Add a person in Settings' : 'Add medications in Settings'}
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default function Today() {
   const [persons, setPersons]       = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -41,12 +98,14 @@ export default function Today() {
   const [logs, setLogs]             = useState([]);
   const [logging, setLogging]       = useState({});
   const [error, setError]           = useState(null);
+  const [personsLoaded, setPersonsLoaded] = useState(false);
 
   useEffect(() => {
     axios.get('/api/persons')
       .then(r => {
         setPersons(r.data);
         if (r.data.length > 0) setSelectedId(r.data[0].id);
+        setPersonsLoaded(true);
       })
       .catch(() => setError('Could not load persons.'));
   }, []);
@@ -154,16 +213,8 @@ export default function Today() {
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
-      {meds.length === 0 && !error && (
-        <div className="text-center py-10">
-          <p className="text-gray-400 dark:text-gray-500 text-sm mb-3">No active medications yet.</p>
-          <Link
-            to="/settings"
-            className="inline-block px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            Add medications in Settings
-          </Link>
-        </div>
+      {personsLoaded && meds.length === 0 && !error && (
+        <SetupChecklist hasPersons={persons.length > 0} hasMeds={false} />
       )}
 
       {/* Scheduled medication groups */}
