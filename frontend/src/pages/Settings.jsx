@@ -375,10 +375,14 @@ function MedicationsTab() {
   }
 
   async function deleteMed(m) {
-    if (!confirm(`Permanently delete "${m.name}"? This cannot be undone.`)) return;
-    await axios.delete(`/api/medications/${m.id}`);
-    setModal(null);
-    loadMeds();
+    if (!confirm(`Permanently delete "${m.name}"? This will also remove all dose history for this medication. This cannot be undone.`)) return;
+    try {
+      await axios.delete(`/api/medications/${m.id}`);
+      setModal(null);
+      loadMeds();
+    } catch {
+      setError('Could not delete medication. Please try again.');
+    }
   }
 
   const isRx = form.type === 'rx';

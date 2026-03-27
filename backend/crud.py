@@ -150,6 +150,13 @@ def delete_medication(db: Session, medication_id: int):
     med = db.query(models.Medication).filter(models.Medication.id == medication_id).first()
     if med is None:
         return None
+    # Remove dose logs referencing this medication
+    db.query(models.DoseLog).filter(models.DoseLog.medication_id == medication_id).delete()
+    # Remove fills and prescription if one exists
+    rx = db.query(models.Prescription).filter(models.Prescription.medication_id == medication_id).first()
+    if rx:
+        db.query(models.Fill).filter(models.Fill.prescription_id == rx.id).delete()
+        db.delete(rx)
     db.delete(med)
     db.commit()
     return med
