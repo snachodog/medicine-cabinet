@@ -25,7 +25,11 @@ from ..auth import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 
 logger = logging.getLogger(__name__)
 
-OIDC_ISSUER        = os.getenv("OIDC_ISSUER", "").rstrip("/")
+_raw_issuer = os.getenv("OIDC_ISSUER", "").strip().rstrip("/")
+# Normalize: add https:// if the value looks like a bare hostname/path
+if _raw_issuer and not _raw_issuer.startswith(("http://", "https://")):
+    _raw_issuer = "https://" + _raw_issuer
+OIDC_ISSUER        = _raw_issuer
 OIDC_CLIENT_ID     = os.getenv("OIDC_CLIENT_ID", "")
 OIDC_CLIENT_SECRET = os.getenv("OIDC_CLIENT_SECRET", "")
 OIDC_SCOPES        = os.getenv("OIDC_SCOPES", "openid email profile")
