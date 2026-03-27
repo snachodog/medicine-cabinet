@@ -229,6 +229,9 @@ function PersonsTab() {
 }
 
 // ── Medications tab ────────────────────────────────────────────────────────────
+const EMPTY_MED_FORM = { name: '', type: 'otc', dose_amount: '', schedule: 'morning', notes: '' };
+const EMPTY_RX_FORM  = { prescriber: '', pharmacy: '', days_supply: 30, scripts_remaining: 6, last_fill_date: '', next_eligible_date: '', expiration_date: '', co_pay: '' };
+
 function MedicationsTab() {
   const [persons, setPersons]         = useState([]);
   const [selectedPerson, setSelected] = useState(null);
@@ -236,7 +239,9 @@ function MedicationsTab() {
   const [modal, setModal]             = useState(null);
   const [catalog, setCatalog]         = useState([]);
   const [catalogQ, setCatalogQ]       = useState('');
-  const [form, setForm]               = useState({ name: '', type: 'otc', dose_amount: '', schedule: 'morning', notes: '' });
+  const [form, setForm]               = useState(EMPTY_MED_FORM);
+  const [rxForm, setRxForm]           = useState(EMPTY_RX_FORM);
+  const [existingRxId, setExistingRxId] = useState(null);
   const [saving, setSaving]           = useState(false);
   const [error, setError]             = useState(null);
 
@@ -263,32 +268,55 @@ function MedicationsTab() {
 
   function openAdd() {
     setModal('add');
-    setForm({ name: '', type: 'otc', dose_amount: '', schedule: 'morning', notes: '' });
+    setForm(EMPTY_MED_FORM);
+    setRxForm(EMPTY_RX_FORM);
+    setExistingRxId(null);
     setCatalogQ('');
     setCatalog([]);
+    setError(null);
   }
 
-  function openEdit(m) {
+  async function openEdit(m) {
     setModal(m);
     setForm({ name: m.name, type: m.type, dose_amount: m.dose_amount || '', schedule: m.schedule, notes: m.notes || '' });
+    setError(null);
+    if (m.type === 'rx') {
+      try {
+        const r = await axios.get(`/api/prescriptions/medication/${m.id}`);
+        setExistingRxId(r.data.id);
+        setRxForm({
+          prescriber: r.data.prescriber || '',
+          pharmacy: r.data.pharmacy || '',
+          days_supply: r.data.days_supply,
+          scripts_remaining: r.data.scripts_remaining,
+          last_fill_date: r.data.last_fill_date || '',
+          next_eligible_date: r.data.next_eligible_date || '',
+          expiration_date: r.data.expiration_date || '',
+          co_pay: r.data.co_pay != null ? String(r.data.co_pay) : '',
+        });
+      } catch {
+        setExistingRxId(null);
+        setRxForm(EMPTY_RX_FORM);
+      }
+    } else {
+      setExistingRxId(null);
+      setRxForm(EMPTY_RX_FORM);
+    }
   }
 
   function selectCatalog(entry) {
-    setForm(f => ({
-      ...f,
-      name: entry.name,
-      type: entry.type,
-      dose_amount: entry.default_dose_amount || '',
-    }));
+    setForm(f => ({ ...f, name: entry.name, type: entry.type, dose_amount: entry.default_dose_amount || '' }));
     setCatalogQ(entry.name);
     setCatalog([]);
   }
 
   async function save() {
     setSaving(true);
+    setError(null);
     try {
+      let medId;
       if (modal === 'add') {
-        await axios.post('/api/medications', {
+        const r = await axios.post('/api/medications', {
           person_id: selectedPerson,
           name: form.name,
           type: form.type,
@@ -296,6 +324,7 @@ function MedicationsTab() {
           schedule: form.schedule,
           notes: form.notes || undefined,
         });
+        medId = r.data.id;
       } else {
         await axios.patch(`/api/medications/${modal.id}`, {
           name: form.name,
@@ -304,11 +333,31 @@ function MedicationsTab() {
           schedule: form.schedule,
           notes: form.notes || undefined,
         });
+        medId = modal.id;
       }
+
+      if (form.type === 'rx') {
+        const rxBody = {
+          prescriber: rxForm.prescriber || undefined,
+          pharmacy: rxForm.pharmacy || undefined,
+          days_supply: Number(rxForm.days_supply),
+          scripts_remaining: Number(rxForm.scripts_remaining),
+          last_fill_date: rxForm.last_fill_date || undefined,
+          next_eligible_date: rxForm.next_eligible_date || undefined,
+          expiration_date: rxForm.expiration_date || undefined,
+          co_pay: rxForm.co_pay !== '' ? Number(rxForm.co_pay) : undefined,
+        };
+        if (existingRxId) {
+          await axios.patch(`/api/prescriptions/${existingRxId}`, rxBody);
+        } else {
+          await axios.post('/api/prescriptions', { ...rxBody, medication_id: medId });
+        }
+      }
+
       setModal(null);
       loadMeds();
-    } catch {
-      setError('Could not save.');
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Could not save.');
     } finally {
       setSaving(false);
     }
@@ -325,6 +374,8 @@ function MedicationsTab() {
     setModal(null);
     loadMeds();
   }
+
+  const isRx = form.type === 'rx';
 
   return (
     <div className="space-y-4">
@@ -421,6 +472,40 @@ function MedicationsTab() {
             <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
           </Field>
 
+          {isRx && (
+            <div className="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Prescription details</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Scripts remaining">
+                  <Input type="number" min="0" value={rxForm.scripts_remaining} onChange={e => setRxForm(f => ({ ...f, scripts_remaining: e.target.value }))} />
+                </Field>
+                <Field label="Days supply">
+                  <Input type="number" min="1" value={rxForm.days_supply} onChange={e => setRxForm(f => ({ ...f, days_supply: e.target.value }))} />
+                </Field>
+              </div>
+              <Field label="Prescriber (optional)">
+                <Input value={rxForm.prescriber} onChange={e => setRxForm(f => ({ ...f, prescriber: e.target.value }))} placeholder="Dr. Smith" />
+              </Field>
+              <Field label="Pharmacy (optional)">
+                <Input value={rxForm.pharmacy} onChange={e => setRxForm(f => ({ ...f, pharmacy: e.target.value }))} placeholder="CVS, Walgreens…" />
+              </Field>
+              <Field label="Co-pay (optional)">
+                <Input type="number" min="0" step="0.01" value={rxForm.co_pay} onChange={e => setRxForm(f => ({ ...f, co_pay: e.target.value }))} placeholder="0.00" />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Last fill date">
+                  <Input type="date" value={rxForm.last_fill_date} onChange={e => setRxForm(f => ({ ...f, last_fill_date: e.target.value }))} />
+                </Field>
+                <Field label="Next eligible date">
+                  <Input type="date" value={rxForm.next_eligible_date} onChange={e => setRxForm(f => ({ ...f, next_eligible_date: e.target.value }))} />
+                </Field>
+              </div>
+              <Field label="Prescription expiration date">
+                <Input type="date" value={rxForm.expiration_date} onChange={e => setRxForm(f => ({ ...f, expiration_date: e.target.value }))} />
+              </Field>
+            </div>
+          )}
+
           <div className="flex justify-between items-center pt-2">
             {modal !== 'add' && (
               <button
@@ -484,14 +569,6 @@ function PrescriptionsTab() {
 
   useEffect(() => { load(); }, []);
 
-  function openAdd() {
-    setError(null);
-    setModal('add');
-    setProviderSuggestions([]);
-    setPharmacySuggestions([]);
-    setForm({ medication_id: '', prescriber: '', pharmacy: '', days_supply: 30, scripts_remaining: 6, last_fill_date: '', next_eligible_date: '', expiration_date: '', co_pay: '' });
-  }
-
   function openEdit(rx) {
     setError(null);
     setModal(rx);
@@ -535,11 +612,7 @@ function PrescriptionsTab() {
         expiration_date: form.expiration_date || undefined,
         co_pay: form.co_pay !== '' ? Number(form.co_pay) : undefined,
       };
-      if (modal === 'add') {
-        await axios.post('/api/prescriptions', { ...body, medication_id: Number(form.medication_id) });
-      } else {
-        await axios.patch(`/api/prescriptions/${modal.id}`, body);
-      }
+      await axios.patch(`/api/prescriptions/${modal.id}`, body);
       setModal(null);
       load();
     } catch (e) {
@@ -555,23 +628,11 @@ function PrescriptionsTab() {
     load();
   }
 
-  const untracked = allMeds.filter(m => !prescriptions.find(rx => rx.medication_id === m.id));
-
-  // Build per-person groups for the medication dropdown
-  const untrackedByPerson = persons
-    .map(p => ({ person: p, meds: untracked.filter(m => m.person_id === p.id) }))
-    .filter(g => g.meds.length > 0);
-
   return (
     <div className="space-y-4">
       {loadError && <p className="text-red-500 text-sm">{loadError}</p>}
 
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500 dark:text-gray-400">{prescriptions.length} prescription{prescriptions.length !== 1 ? 's' : ''} tracked</p>
-        <button onClick={openAdd} className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
-          Add prescription
-        </button>
-      </div>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{prescriptions.length} prescription{prescriptions.length !== 1 ? 's' : ''} tracked · add new ones via the Medications tab</p>
 
       <ul className="space-y-2">
         {prescriptions.map(rx => (
@@ -595,34 +656,9 @@ function PrescriptionsTab() {
         ))}
       </ul>
 
-      <Modal isOpen={!!modal} onClose={() => setModal(null)} title={modal === 'add' ? 'Add prescription' : `Edit prescription${modal?.person_name ? ` — ${modal.person_name}` : ''}`}>
+      <Modal isOpen={!!modal} onClose={() => setModal(null)} title={`Edit prescription${modal?.person_name ? ` — ${modal.person_name}` : ''}`}>
         <div className="space-y-4">
           {error && <p className="text-red-500 text-sm">{error}</p>}
-
-          {modal === 'add' && (
-            <Field label="Medication">
-              {allMeds.length === 0 ? (
-                <p className="text-sm text-amber-600 dark:text-amber-400 py-2">
-                  No medications found. Add them in the Medications tab first.
-                </p>
-              ) : untracked.length === 0 ? (
-                <p className="text-sm text-gray-500 py-2">
-                  All eligible medications already have prescriptions.
-                </p>
-              ) : (
-                <Select value={form.medication_id} onChange={e => setForm(f => ({ ...f, medication_id: e.target.value }))}>
-                  <option value="">Select a medication…</option>
-                  {untrackedByPerson.map(({ person, meds }) => (
-                    <optgroup key={person.id} label={person.name}>
-                      {meds.map(m => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </Select>
-              )}
-            </Field>
-          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Scripts remaining">
