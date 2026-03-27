@@ -44,12 +44,13 @@ export default function Login() {
         login(res.data);
         navigate('/');
       } else {
-        await axios.post('/api/auth/register', form);
+        await axios.post('/api/auth/register', { ...form, invite_code: form.invite_code || null });
         setTab('login');
         setError('Account created — please sign in.');
       }
     } catch (err) {
-      setError(err.response?.data?.detail ?? 'Something went wrong.');
+      const detail = err.response?.data?.detail;
+      setError(Array.isArray(detail) ? detail.map(e => e.msg).join(' ') : (detail ?? 'Something went wrong.'));
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +94,7 @@ export default function Login() {
             placeholder="Username"
             autoComplete="username"
             required
-            className="block w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+            className="block w-full px-3 py-3 text-base border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
           />
           <input
             type="password"
@@ -103,7 +104,7 @@ export default function Login() {
             placeholder="Password"
             autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
             required
-            className="block w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+            className="block w-full px-3 py-3 text-base border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
           />
           {tab === 'register' && (
             <input
@@ -112,13 +113,13 @@ export default function Login() {
               onChange={handleChange}
               placeholder={config.registration_enabled ? 'Invite code (optional)' : 'Invite code (required)'}
               required={!config.registration_enabled}
-              className="block w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+              className="block w-full px-3 py-3 text-base border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
             />
           )}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            className="w-full py-3 text-base bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
           >
             {submitting ? 'Please wait…' : tab === 'login' ? 'Sign In' : 'Create Account'}
           </button>
@@ -133,7 +134,7 @@ export default function Login() {
             </div>
             <a
               href="/api/auth/oidc/login"
-              className="flex items-center justify-center w-full py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center justify-center w-full py-3 text-base border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Sign in with {config.oidc_provider_name}
             </a>
