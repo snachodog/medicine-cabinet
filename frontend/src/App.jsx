@@ -3,6 +3,7 @@ import { Routes, Route, Link, useLocation, Navigate } from 'react-router';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import Today from './pages/Today';
 import Refills from './pages/Refills';
 import History from './pages/History';
@@ -129,6 +130,7 @@ function AppShell() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6">
+        <ErrorBoundary>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/"        element={<ProtectedRoute><Today    /></ProtectedRoute>} />
@@ -137,6 +139,7 @@ function AppShell() {
           <Route path="/settings"element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </ErrorBoundary>
       </main>
 
       <footer className="max-w-3xl mx-auto px-4 py-4 mt-2 flex items-center justify-end gap-2 border-t border-gray-200 dark:border-gray-800">

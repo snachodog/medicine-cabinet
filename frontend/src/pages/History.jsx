@@ -2,35 +2,39 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router';
 import axios from 'axios';
 
+function localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function daysAgo(n) {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return localDateStr(d);
 }
 
 function computeStreak(logs, medicationId) {
   const dates = [...new Set(
     logs
       .filter(l => l.medication_id === medicationId)
-      .map(l => l.taken_at.slice(0, 10))
+      .map(l => localDateStr(new Date(l.taken_at)))
   )].sort().reverse();
 
   if (dates.length === 0) return 0;
 
   let streak = 0;
-  let expected = new Date().toISOString().slice(0, 10);
+  let expected = localDateStr(new Date());
 
   for (const d of dates) {
     if (d === expected) {
       streak++;
-      const prev = new Date(expected);
+      const prev = new Date(expected + 'T00:00:00');
       prev.setDate(prev.getDate() - 1);
-      expected = prev.toISOString().slice(0, 10);
+      expected = localDateStr(prev);
     } else if (streak === 0 && d === daysAgo(1)) {
       streak++;
-      const prev = new Date(d);
+      const prev = new Date(d + 'T00:00:00');
       prev.setDate(prev.getDate() - 1);
-      expected = prev.toISOString().slice(0, 10);
+      expected = localDateStr(prev);
     } else {
       break;
     }
