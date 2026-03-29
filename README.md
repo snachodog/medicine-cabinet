@@ -218,9 +218,42 @@ Once configured, users opt in per-account under **Settings → Notifications** a
 
 ## Privacy & Security
 
-Medicine Cabinet is designed to be **self-hosted** so sensitive health data stays on your own machine or server and never passes through a third-party service. You control the database, the backups, and the access.
+Medicine Cabinet is designed to be **self-hosted** so sensitive health data stays on your own server and never passes through a third-party service. You control the database, the backups, and who has access.
 
-Tokens are stored in httpOnly cookies and never accessible to JavaScript. All data is scoped to authenticated accounts, and household sharing requires an explicit grant by an existing member. OIDC accounts are linked by verified email address; no unverified auto-provisioning occurs.
+### What is protected
+
+| Protection | Details |
+| --- | --- |
+| **Passwords** | Stored as bcrypt hashes with a random salt. Plaintext passwords are never written to disk and cannot be recovered from the database. |
+| **User isolation** | Every API request verifies that the requesting account has been granted access to the person's data. One user cannot read another's medications, logs, or prescriptions unless explicitly shared. |
+| **Auth cookies** | JWT session tokens are stored in `HttpOnly`, `SameSite=Lax` cookies - not accessible to JavaScript. The `Secure` flag is enabled by default (`COOKIE_SECURE=true`) so cookies are only transmitted over HTTPS. |
+| **Token revocation** | Logging out immediately invalidates the session token. |
+| **Rate limiting** | Login and registration endpoints are rate-limited to slow brute-force attempts. |
+| **Transport** | The app is intended to be served behind a TLS-terminating reverse proxy (e.g. Cloudflare, nginx). Running it on plain HTTP is only appropriate for local development. |
+
+### What is NOT protected
+
+**Medication data is stored as plaintext in the database.** This includes medication names, doses, schedules, dose logs, prescriptions, fill history, and notes.
+
+This means:
+
+- Anyone with direct database access (the server operator, a compromised host) can read all user data
+- A database backup or dump contains all data in readable form
+- There is no end-to-end encryption - the server sees everything
+
+This is a deliberate trade-off common to self-hosted web apps. It is appropriate for personal or family use on a server you control, but you should disclose this to anyone you invite to use your instance.
+
+### Recommendations for self-hosters
+
+- **Enable HTTPS** - run behind Cloudflare, Caddy, or an nginx reverse proxy with a TLS certificate. Do not expose port 8000 directly to the internet.
+- **Enable disk/volume encryption** on the host so database files on disk are protected if physical media is seized or lost.
+- **Restrict database access** - the Postgres port is not published externally by default in `docker-compose.yml`. Keep it that way.
+- **Keep backups encrypted** - if you back up the Postgres volume, encrypt the backup at rest.
+- **Use a strong `SECRET_KEY`** - generate with `openssl rand -hex 32`. Rotating it invalidates all active sessions.
+
+### OIDC / SSO note
+
+OIDC accounts are provisioned on first login using the verified email address returned by the identity provider. No unverified auto-provisioning occurs. The identity provider is responsible for authenticating the user - Medicine Cabinet trusts the claims in the OIDC token.
 
 ---
 

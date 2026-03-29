@@ -34,6 +34,7 @@ OIDC_CLIENT_ID     = os.getenv("OIDC_CLIENT_ID", "")
 OIDC_CLIENT_SECRET = os.getenv("OIDC_CLIENT_SECRET", "")
 OIDC_SCOPES        = os.getenv("OIDC_SCOPES", "openid email profile")
 OIDC_CONFIGURED    = bool(OIDC_ISSUER and OIDC_CLIENT_ID and OIDC_CLIENT_SECRET)
+COOKIE_SECURE      = os.getenv("COOKIE_SECURE", "true").lower() == "true"
 
 router = APIRouter(prefix="/auth/oidc", tags=["oidc"])
 
@@ -78,7 +79,7 @@ async def oidc_login(request: Request):
     response = RedirectResponse(auth_url, status_code=302)
     response.set_cookie(
         "oidc_state", state,
-        httponly=True, max_age=300, samesite="lax",
+        httponly=True, max_age=300, samesite="lax", secure=COOKIE_SECURE,
     )
     return response
 
@@ -167,6 +168,7 @@ async def oidc_callback(
         httponly=True,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         samesite="lax",
+        secure=COOKIE_SECURE,
     )
     response.delete_cookie("oidc_state")
     return response
