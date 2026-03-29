@@ -49,6 +49,7 @@ Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medication
 - **Toggleable registration** — open registration (default) or invite-only mode controlled by an environment variable
 - **Invite codes** — logged-in users can generate single-use invite codes with optional expiry; required when registration is closed
 - **Account self-service** — users can change their username and password from the Account settings tab
+- **PWA / installable** — installable as a Progressive Web App on mobile and desktop; works offline for cached pages
 - **httpOnly cookie auth** — JWT stored in a secure httpOnly SameSite=Lax cookie; never exposed to JavaScript
 - **Token revocation** — logout invalidates the session token immediately
 - **Rate limiting** — login and registration endpoints are rate-limited to prevent brute force
@@ -122,6 +123,8 @@ SECRET_KEY=your-long-random-secret
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
+> **Local development over plain HTTP?** The auth cookie has `Secure=true` by default, which browsers refuse to store over HTTP. If you are running the app locally without a TLS proxy, add `COOKIE_SECURE=false` to your `.env` or login will silently fail. This setting must be `true` (or omitted) in any internet-facing deployment.
+
 See the [Configuration reference](#configuration-reference) below for all available options.
 
 ### 3. Start
@@ -163,12 +166,13 @@ All configuration is via environment variables in `.env`. Only the required vari
 
 ### Optional — Core
 
-| Variable                      | Default          | Description                                          |
-|-------------------------------|------------------|------------------------------------------------------|
-| `POSTGRES_USER`               | `medicabinet`    | Database username                                    |
-| `POSTGRES_DB`                 | `medicabinet_db` | Database name                                        |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60`             | How long login sessions last                         |
-| `REGISTRATION_ENABLED`        | `true`           | Set to `false` to require an invite code to register |
+| Variable                      | Default          | Description                                                                                                                                                                    |
+|-------------------------------|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `POSTGRES_USER`               | `medicabinet`    | Database username                                                                                                                                                              |
+| `POSTGRES_DB`                 | `medicabinet_db` | Database name                                                                                                                                                                  |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60`             | How long login sessions last                                                                                                                                                   |
+| `REGISTRATION_ENABLED`        | `true`           | Set to `false` to require an invite code to register                                                                                                                           |
+| `COOKIE_SECURE`               | `true`           | Adds the `Secure` flag to auth cookies. Keep `true` for HTTPS. Set to `false` for local HTTP dev - browsers drop Secure cookies over HTTP, causing login to fail.              |
 
 ### Optional — SSO / OIDC
 
@@ -210,8 +214,6 @@ Once configured, users opt in per-account under **Settings → Notifications** a
 
 - [ ] CSV import/export for bulk medication management
 - [ ] Dashboard view — expiring prescriptions, upcoming refills, recent activity at a glance
-- [ ] Mobile PWA — offline-capable client for logging doses on the go
-- [ ] Barcode scanning — camera-based UPC lookup to pre-fill medication fields in the UI
 - [ ] Password reset via email
 
 ---
