@@ -211,7 +211,6 @@ Once configured, users opt in per-account under **Settings → Notifications** a
 - [ ] CSV import/export for bulk medication management
 - [ ] Dashboard view — expiring prescriptions, upcoming refills, recent activity at a glance
 - [ ] Mobile PWA — offline-capable client for logging doses on the go
-- [ ] Barcode scanning — camera-based UPC lookup to pre-fill medication fields in the UI
 - [ ] Password reset via email
 
 ---
