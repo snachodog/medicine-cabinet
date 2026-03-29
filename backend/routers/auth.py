@@ -19,6 +19,7 @@ from ..auth import (
 from ..limiter import limiter
 
 REGISTRATION_ENABLED = os.getenv("REGISTRATION_ENABLED", "true").lower() == "true"
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").lower() == "true"
 
 router = APIRouter(
     prefix="/auth",
@@ -133,7 +134,7 @@ def login(
         httponly=True,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         samesite="lax",
-        # secure=True  # Uncomment when serving over HTTPS in production
+        secure=COOKIE_SECURE,
     )
     return account
 
@@ -180,6 +181,7 @@ def update_me(
             httponly=True,
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             samesite="lax",
+            secure=COOKIE_SECURE,
         )
     return account
 
