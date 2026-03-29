@@ -72,8 +72,12 @@ function SharingModal({ person, onClose }) {
   }
 
   async function removeUser(entry) {
-    await axios.delete(`/api/persons/${person.id}/access/${entry.account_id}`);
-    loadAccess();
+    try {
+      await axios.delete(`/api/persons/${person.id}/access/${entry.account_id}`);
+      loadAccess();
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Could not remove user.');
+    }
   }
 
   return (
@@ -169,8 +173,12 @@ function PersonsTab() {
 
   async function del(p) {
     if (!confirm(`Delete ${p.name}? This will remove all their medication data.`)) return;
-    await axios.delete(`/api/persons/${p.id}`);
-    load();
+    try {
+      await axios.delete(`/api/persons/${p.id}`);
+      load();
+    } catch (e) {
+      showToast(e.response?.data?.detail || 'Could not delete person.', 'error');
+    }
   }
 
   return (
@@ -398,8 +406,12 @@ function MedicationsTab() {
   }
 
   async function toggleActive(m) {
-    await axios.patch(`/api/medications/${m.id}`, { is_active: !m.is_active });
-    loadMeds();
+    try {
+      await axios.patch(`/api/medications/${m.id}`, { is_active: !m.is_active });
+      loadMeds();
+    } catch {
+      showToast('Could not update medication status.', 'error');
+    }
   }
 
   async function deleteMed(m) {
@@ -731,8 +743,12 @@ function PrescriptionsTab() {
 
   async function del(rx) {
     if (!confirm(`Remove prescription for ${rx.medication_name}?`)) return;
-    await axios.delete(`/api/prescriptions/${rx.id}`);
-    load();
+    try {
+      await axios.delete(`/api/prescriptions/${rx.id}`);
+      load();
+    } catch (e) {
+      setLoadError(e.response?.data?.detail || 'Could not remove prescription.');
+    }
   }
 
   return (
@@ -1020,6 +1036,7 @@ function NotificationsTab() {
 
 // ── Contacts tab ──────────────────────────────────────────────────────────────
 function ContactsTab() {
+  const showToast = useToast();
   const [section, setSection]   = useState('providers'); // 'providers' | 'pharmacies'
   const [items, setItems]       = useState([]);
   const [modal, setModal]       = useState(null);
@@ -1069,10 +1086,13 @@ function ContactsTab() {
   }
 
   async function del(item) {
-    const label = isProvider ? 'provider' : 'pharmacy';
     if (!confirm(`Delete ${item.name}?`)) return;
-    await axios.delete(`/api/contacts/${section}/${item.id}`);
-    load();
+    try {
+      await axios.delete(`/api/contacts/${section}/${item.id}`);
+      load();
+    } catch (e) {
+      showToast(e.response?.data?.detail || 'Could not delete.', 'error');
+    }
   }
 
   return (
@@ -1193,6 +1213,7 @@ function InvitesTab() {
   const [expiry, setExpiry]     = useState('');
   const [creating, setCreating] = useState(false);
   const [copied, setCopied]     = useState(null);
+  const [error, setError]       = useState(null);
 
   function load() {
     axios.get('/api/auth/invites').then(r => setInvites(r.data));
@@ -1201,10 +1222,13 @@ function InvitesTab() {
 
   async function create() {
     setCreating(true);
+    setError(null);
     try {
       await axios.post('/api/auth/invites', { expires_in_days: expiry ? Number(expiry) : null });
       setExpiry('');
       load();
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Could not generate invite.');
     } finally {
       setCreating(false);
     }
@@ -1212,8 +1236,12 @@ function InvitesTab() {
 
   async function revoke(id) {
     if (!confirm('Revoke this invite code?')) return;
-    await axios.delete(`/api/auth/invites/${id}`);
-    load();
+    try {
+      await axios.delete(`/api/auth/invites/${id}`);
+      load();
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Could not revoke invite.');
+    }
   }
 
   function copyCode(code) {
@@ -1227,6 +1255,7 @@ function InvitesTab() {
 
   return (
     <div className="space-y-5 max-w-lg">
+      {error && <p className="text-red-500 text-sm">{error}</p>}
       <div>
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Generate invite code</h3>
         <div className="flex gap-3 items-end">
