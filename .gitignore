@@ -36,3 +36,5 @@ Thumbs.db
 
 # AI tooling — never commit these
 .claude/
+CLAUDE.md
+DECISIONS.md
