@@ -9,7 +9,7 @@ Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medication
 
 ---
 
-## Current Features
+## Features
 
 ### Household & Profiles
 
@@ -22,8 +22,8 @@ Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medication
 
 - **Medication management** — create, edit, and deactivate medications with name, dosage, type (OTC / supplement / Rx), schedule, and notes
 - **Prescription tracking** — link prescriptions to Rx medications; track fill dates, scripts remaining, next eligible date, expiration date, prescriber, pharmacy, and co-pay
-- **Dose logging** — record when doses are taken; view history per medication
-- **Medication catalog** — search a built-in drug reference to pre-fill medication fields by name or barcode (UPC)
+- **Dose logging** — record when doses are taken; view history and streaks per medication
+- **Medication catalog** — search a built-in drug reference to pre-fill medication fields by name
 
 ### Contacts
 
@@ -49,15 +49,17 @@ Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medication
 - **Toggleable registration** — open registration (default) or invite-only mode controlled by an environment variable
 - **Invite codes** — logged-in users can generate single-use invite codes with optional expiry; required when registration is closed
 - **Account self-service** — users can change their username and password from the Account settings tab
-- **PWA / installable** — installable as a Progressive Web App on mobile and desktop; works offline for cached pages
-- **httpOnly cookie auth** — JWT stored in a secure httpOnly SameSite=Lax cookie; never exposed to JavaScript
-- **Token revocation** — logout invalidates the session token immediately
-- **Rate limiting** — login and registration endpoints are rate-limited to prevent brute force
+- **Installable PWA** — install Medicine Cabinet as an app on mobile and desktop; cached pages work offline
 
 ### Security & Administration
 
+- **Passwords protected by bcrypt** — plaintext passwords are never stored and cannot be recovered from the database
+- **User isolation** — every request verifies account access; one user cannot read another's data unless explicitly shared
+- **httpOnly cookie auth** — JWT session tokens stored in `HttpOnly`, `SameSite=Lax` cookies; never exposed to JavaScript
+- **Token revocation** — logout invalidates the session token immediately
+- **Rate limiting** — login and registration endpoints are rate-limited to prevent brute force
+- **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` on every response
 - **Audit log** — all create/update/delete events are logged and visible to account holders
-- **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` applied on every response
 
 ### Developer / API
 
@@ -210,10 +212,8 @@ Once configured, users opt in per-account under **Settings → Notifications** a
 
 ## Roadmap
 
-### Future ideas
-
-- [ ] CSV import/export for bulk medication management
 - [ ] Dashboard view — expiring prescriptions, upcoming refills, recent activity at a glance
+- [ ] CSV import/export for bulk medication management
 - [ ] Password reset via email
 
 ---
@@ -222,46 +222,34 @@ Once configured, users opt in per-account under **Settings → Notifications** a
 
 Medicine Cabinet is designed to be **self-hosted** so sensitive health data stays on your own server and never passes through a third-party service. You control the database, the backups, and who has access.
 
-### What is protected
+### Security measures
 
-| Protection | Details |
+| Area | Details |
 | --- | --- |
 | **Passwords** | Stored as bcrypt hashes with a random salt. Plaintext passwords are never written to disk and cannot be recovered from the database. |
 | **User isolation** | Every API request verifies that the requesting account has been granted access to the person's data. One user cannot read another's medications, logs, or prescriptions unless explicitly shared. |
-| **Auth cookies** | JWT session tokens are stored in `HttpOnly`, `SameSite=Lax` cookies - not accessible to JavaScript. The `Secure` flag is enabled by default (`COOKIE_SECURE=true`) so cookies are only transmitted over HTTPS. |
+| **Auth cookies** | JWT session tokens are stored in `HttpOnly`, `SameSite=Lax` cookies — not accessible to JavaScript. The `Secure` flag is enabled by default (`COOKIE_SECURE=true`) so cookies are only transmitted over HTTPS. |
 | **Token revocation** | Logging out immediately invalidates the session token. |
 | **Rate limiting** | Login and registration endpoints are rate-limited to slow brute-force attempts. |
-| **Transport** | The app is intended to be served behind a TLS-terminating reverse proxy (e.g. Cloudflare, nginx). Running it on plain HTTP is only appropriate for local development. |
-
-### What is NOT protected
-
-**Medication data is stored as plaintext in the database.** This includes medication names, doses, schedules, dose logs, prescriptions, fill history, and notes.
-
-This means:
-
-- Anyone with direct database access (the server operator, a compromised host) can read all user data
-- A database backup or dump contains all data in readable form
-- There is no end-to-end encryption - the server sees everything
-
-This is a deliberate trade-off common to self-hosted web apps. It is appropriate for personal or family use on a server you control, but you should disclose this to anyone you invite to use your instance.
+| **Transport** | Designed to run behind a TLS-terminating reverse proxy (Cloudflare, Caddy, nginx). The Docker image does not expose plain HTTP to the internet. |
 
 ### Recommendations for self-hosters
 
 - **Enable HTTPS** - run behind Cloudflare, Caddy, or an nginx reverse proxy with a TLS certificate. Do not expose port 8000 directly to the internet.
-- **Enable disk/volume encryption** on the host so database files on disk are protected if physical media is seized or lost.
+- **Enable disk/volume encryption** on the host to protect database files if physical media is ever lost or seized.
 - **Restrict database access** - the Postgres port is not published externally by default in `docker-compose.yml`. Keep it that way.
 - **Keep backups encrypted** - if you back up the Postgres volume, encrypt the backup at rest.
 - **Use a strong `SECRET_KEY`** - generate with `openssl rand -hex 32`. Rotating it invalidates all active sessions.
 
 ### OIDC / SSO note
 
-OIDC accounts are provisioned on first login using the verified email address returned by the identity provider. No unverified auto-provisioning occurs. The identity provider is responsible for authenticating the user - Medicine Cabinet trusts the claims in the OIDC token.
+OIDC accounts are provisioned on first login using the verified email address returned by the identity provider. No unverified auto-provisioning occurs. The identity provider is responsible for authenticating the user — Medicine Cabinet trusts the claims in the OIDC token.
 
 ---
 
 ## License
 
-[MIT](LICENSE) — © 2025 Steven Dogiakos
+[MIT](LICENSE) — © 2026 Steven Dogiakos
 
 ---
 
