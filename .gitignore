@@ -24,6 +24,9 @@ node_modules/
 frontend/dist/
 frontend/.vite/
 
+# semantic-release
+.semrelease-version
+
 # OS
 .DS_Store
 Thumbs.db
