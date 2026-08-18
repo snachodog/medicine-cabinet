@@ -13,6 +13,17 @@ const SCHEDULE_LABEL = {
   monthly:           'Monthly',
   as_needed:         'As Needed',
 };
+// Expected doses per day for each schedule. Drives how many times "Took it"
+// can be tapped before a medication is considered done for the day.
+const DOSES_PER_DAY = {
+  morning:           1,
+  twice_daily:       2,
+  evening:           1,
+  three_times_daily: 3,
+  every_other_day:   1,
+  weekly:            1,
+  monthly:           1,
+};
 
 // Returns YYYY-MM-DD for today in the browser's local timezone.
 function todayISO() {
@@ -286,49 +297,78 @@ export default function Today() {
                   );
                 }
 
-                // Regular scheduled med: one-and-done per day
-                const log = todayLogs[0] ?? null;
+                // Regular scheduled med: allow up to the schedule's expected doses per day
+                const expected = DOSES_PER_DAY[schedule] ?? 1;
+                const done = todayLogs.length >= expected;
+                const lastLog = todayLogs[0] ?? null;
                 return (
                   <li
                     key={med.id}
                     className={`flex items-center justify-between rounded-xl px-4 py-3 shadow-sm transition-colors ${
-                      taken
+                      done
                         ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
                         : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
                     }`}
                   >
                     <div className="min-w-0">
-                      <p className={`font-medium truncate ${taken ? 'text-green-800 dark:text-green-300' : 'text-gray-800 dark:text-gray-100'}`}>
+                      <p className={`font-medium truncate ${done ? 'text-green-800 dark:text-green-300' : 'text-gray-800 dark:text-gray-100'}`}>
                         {med.name}
                       </p>
                       {med.dose_amount && (
                         <p className="text-sm text-gray-400 dark:text-gray-500">{med.dose_amount}</p>
                       )}
                       {taken && (
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                          Taken at {formatTime(log.taken_at)}
-                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          {expected > 1 && (
+                            <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                              Taken {todayLogs.length} of {expected} today
+                            </span>
+                          )}
+                          {expected === 1 && (
+                            <span className="text-xs text-green-600 dark:text-green-400">
+                              Taken at {formatTime(lastLog.taken_at)}
+                            </span>
+                          )}
+                          {expected > 1 && [...todayLogs].reverse().map((log, i) => (
+                            <span key={log.id} className="flex items-center gap-1">
+                              <span className="text-xs text-gray-400 dark:text-gray-500">{formatTime(log.taken_at)}</span>
+                              {i === 0 && (
+                                <button
+                                  onClick={() => handleUndo(log)}
+                                  className="text-xs text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                                  title="Undo last dose"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
 
                     <div className="ml-4 shrink-0">
-                      {taken ? (
-                        <div className="flex items-center gap-2">
+                      {done ? (
+                        expected === 1 ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-green-500 text-xl">✓</span>
+                            <button
+                              onClick={() => handleUndo(lastLog)}
+                              className="text-xs text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
+                            >
+                              Undo
+                            </button>
+                          </div>
+                        ) : (
                           <span className="text-green-500 text-xl">✓</span>
-                          <button
-                            onClick={() => handleUndo(log)}
-                            className="text-xs text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
-                          >
-                            Undo
-                          </button>
-                        </div>
+                        )
                       ) : (
                         <button
                           onClick={() => handleLog(med)}
                           disabled={busy}
                           className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
                         >
-                          {busy ? '…' : 'Took it'}
+                          {busy ? '…' : expected > 1 ? `Took it (${todayLogs.length}/${expected})` : 'Took it'}
                         </button>
                       )}
                     </div>

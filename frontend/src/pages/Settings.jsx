@@ -3,6 +3,7 @@ import axios from 'axios';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { apiErrorMessage } from '../utils/apiError';
 
 const TABS = ['People', 'Medications', 'Prescriptions', 'Contacts', 'Notifications', 'Invites', 'Account', 'Activity'];
 const SCHEDULES = ['morning', 'twice_daily', 'evening', 'three_times_daily', 'every_other_day', 'weekly', 'monthly', 'as_needed'];
@@ -65,7 +66,7 @@ function SharingModal({ person, onClose }) {
       setNewUsername('');
       loadAccess();
     } catch (e) {
-      setError(e.response?.data?.detail || 'Could not add user.');
+      setError(apiErrorMessage(e, 'Could not add user.'));
     } finally {
       setAdding(false);
     }
@@ -76,7 +77,7 @@ function SharingModal({ person, onClose }) {
       await axios.delete(`/api/persons/${person.id}/access/${entry.account_id}`);
       loadAccess();
     } catch (e) {
-      setError(e.response?.data?.detail || 'Could not remove user.');
+      setError(apiErrorMessage(e, 'Could not remove user.'));
     }
   }
 
@@ -177,7 +178,7 @@ function PersonsTab() {
       await axios.delete(`/api/persons/${p.id}`);
       load();
     } catch (e) {
-      showToast(e.response?.data?.detail || 'Could not delete person.', 'error');
+      showToast(apiErrorMessage(e, 'Could not delete person.'), 'error');
     }
   }
 
@@ -399,7 +400,7 @@ function MedicationsTab() {
       loadMeds();
       showToast(modal === 'add' ? 'Medication added' : 'Medication updated');
     } catch (e) {
-      setError(e.response?.data?.detail || 'Could not save.');
+      setError(apiErrorMessage(e, 'Could not save.'));
     } finally {
       setSaving(false);
     }
@@ -446,8 +447,15 @@ function MedicationsTab() {
         </div>
       )}
 
-      <div className="flex justify-end">
-        <button onClick={openAdd} className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+      <div className="flex justify-end items-center gap-3">
+        {!selectedPerson && (
+          <p className="text-xs text-gray-400 dark:text-gray-500">Add a person before adding medications.</p>
+        )}
+        <button
+          onClick={openAdd}
+          disabled={!selectedPerson}
+          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           Add medication
         </button>
       </div>
@@ -681,7 +689,7 @@ function PrescriptionsTab() {
       );
       setAllMeds(eligible);
     } catch (e) {
-      setLoadError(e.response?.data?.detail || 'Could not load prescriptions.');
+      setLoadError(apiErrorMessage(e, 'Could not load prescriptions.'));
     }
   }
 
@@ -735,7 +743,7 @@ function PrescriptionsTab() {
       load();
       showToast('Prescription updated');
     } catch (e) {
-      setError(e.response?.data?.detail || 'Could not save.');
+      setError(apiErrorMessage(e, 'Could not save.'));
     } finally {
       setSaving(false);
     }
@@ -747,7 +755,7 @@ function PrescriptionsTab() {
       await axios.delete(`/api/prescriptions/${rx.id}`);
       load();
     } catch (e) {
-      setLoadError(e.response?.data?.detail || 'Could not remove prescription.');
+      setLoadError(apiErrorMessage(e, 'Could not remove prescription.'));
     }
   }
 
@@ -1079,7 +1087,7 @@ function ContactsTab() {
       setModal(null);
       load();
     } catch (e) {
-      setError(e.response?.data?.detail || 'Could not save.');
+      setError(apiErrorMessage(e, 'Could not save.'));
     } finally {
       setSaving(false);
     }
@@ -1091,7 +1099,7 @@ function ContactsTab() {
       await axios.delete(`/api/contacts/${section}/${item.id}`);
       load();
     } catch (e) {
-      showToast(e.response?.data?.detail || 'Could not delete.', 'error');
+      showToast(apiErrorMessage(e, 'Could not delete.'), 'error');
     }
   }
 
@@ -1228,7 +1236,7 @@ function InvitesTab() {
       setExpiry('');
       load();
     } catch (e) {
-      setError(e.response?.data?.detail || 'Could not generate invite.');
+      setError(apiErrorMessage(e, 'Could not generate invite.'));
     } finally {
       setCreating(false);
     }
@@ -1240,7 +1248,7 @@ function InvitesTab() {
       await axios.delete(`/api/auth/invites/${id}`);
       load();
     } catch (e) {
-      setError(e.response?.data?.detail || 'Could not revoke invite.');
+      setError(apiErrorMessage(e, 'Could not revoke invite.'));
     }
   }
 
@@ -1364,7 +1372,7 @@ function AccountTab() {
       login(res.data);
       setUsernameMsg({ ok: true, text: 'Username updated.' });
     } catch (e) {
-      setUsernameMsg({ ok: false, text: e.response?.data?.detail || 'Could not update username.' });
+      setUsernameMsg({ ok: false, text: apiErrorMessage(e, 'Could not update username.') });
     } finally {
       setUsernameSaving(false);
     }
@@ -1383,7 +1391,7 @@ function AccountTab() {
       setPw({ current: '', next: '', confirm: '' });
       setPwMsg({ ok: true, text: 'Password changed.' });
     } catch (e) {
-      setPwMsg({ ok: false, text: e.response?.data?.detail || 'Could not change password.' });
+      setPwMsg({ ok: false, text: apiErrorMessage(e, 'Could not change password.') });
     } finally {
       setPwSaving(false);
     }
