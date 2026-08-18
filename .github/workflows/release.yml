@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["Docker Image CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      released: ${{ steps.release.outputs.released }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install release dependencies
+        run: npm install --no-save semantic-release @semantic-release/changelog @semantic-release/exec @semantic-release/git
+
+      - name: Release
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx semantic-release
+          if [ -f .semrelease-version ]; then
+            echo "version=$(cat .semrelease-version)" >> "$GITHUB_OUTPUT"
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  tag-image:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to DockerHub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Pull latest and tag with released version
+        run: |
+          docker pull ${{ vars.DOCKER_USERNAME }}/medicine-cabinet:latest
+          docker tag ${{ vars.DOCKER_USERNAME }}/medicine-cabinet:latest \
+            ${{ vars.DOCKER_USERNAME }}/medicine-cabinet:${{ needs.release.outputs.version }}
+          docker push ${{ vars.DOCKER_USERNAME }}/medicine-cabinet:${{ needs.release.outputs.version }}
