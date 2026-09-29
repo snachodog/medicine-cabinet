@@ -3,119 +3,114 @@
 
 # Medicine Cabinet
 
-**Medicine Cabinet** is a self-hosted web app for tracking your household's medications, prescriptions, and dose history — running entirely on your own server.
+Medicine Cabinet is a self-hosted web app for keeping track of your household's medications, prescriptions, and doses. Everything runs on your own server.
 
-Inspired by tools like [Snipe-IT](https://snipeitapp.com/), it treats medications as trackable assets assigned to people. Built for families, caregivers, or anyone managing health items at home.
+The idea comes from asset trackers like [Snipe-IT](https://snipeitapp.com/): each medication is an item assigned to a person. It's built for families, caregivers, and anyone who manages medications for more than one person at home.
 
 ---
 
 ## Features
 
-### Household & Profiles
+### Household and profiles
 
-- **Multi-person households** — manage medications for multiple people under one account
-- **Household sharing** — grant other accounts access to a person's records by username; revoke at any time
-- **Person profiles** — store allergies and notes per household member
-- **Allergy tracking** — allergy information is prominently displayed and included in PDF exports
+- **Multiple people per account.** Track medications for everyone in the household from one login.
+- **Sharing.** Give another account access to a person's records by username, and take it back whenever you want.
+- **Profiles.** Keep allergies and notes for each person. Allergies show up prominently in the app and on PDF reports.
 
-### Medications & Prescriptions
+### Medications and prescriptions
 
-- **Medication management** — create, edit, and deactivate medications with name, dosage, type (OTC / supplement / Rx), schedule, and notes
-- **Prescription tracking** — link prescriptions to Rx medications; track fill dates, scripts remaining, next eligible date, expiration date, prescriber, pharmacy, and co-pay
-- **Dose logging** — record when doses are taken; view history and streaks per medication
-- **Medication catalog** — search a built-in drug reference to pre-fill medication fields by name
+- **Medications.** Add, edit, and deactivate medications with a name, dosage, type (OTC, supplement, or Rx), schedule, and notes.
+- **Prescriptions.** Attach a prescription to any Rx medication to track fill dates, scripts remaining, next eligible date, expiration date, prescriber, pharmacy, and co-pay. Logging a fill counts down the scripts remaining.
+- **Dose log.** Check off doses as they're taken, then look back through history and streaks for each medication.
+- **Drug catalog.** Search the built-in drug reference to fill in medication details by name.
 
 ### Contacts
 
-- **Provider directory** — save prescribers with specialty, phone, address, and website; autofills prescription forms
-- **Pharmacy directory** — save pharmacies with contact info; autofills prescription forms
+- **Providers.** Save prescribers with practice name, specialty, phone, address, and website.
+- **Pharmacies.** Save pharmacies with their contact details.
 
-### Exports & Integrations
+Saved contacts autofill the prescription form.
 
-- **PDF medication report** — generate a printable report per person listing all active medications, suitable for handing to a provider or emergency services
-- **Calendar feed (ICS)** — subscribe to a per-account `.ics` feed in any calendar app (Google Calendar, Apple Calendar, Outlook) with pickup events and refill reminders; or download a one-time snapshot
+### Exports and reminders
 
-### Notifications & Reminders
+- **PDF report.** Print a list of a person's active medications and allergies to hand to a doctor or first responder.
+- **Calendar feed.** Subscribe to a private `.ics` feed in Google Calendar, Apple Calendar, or Outlook to see pickup dates with a reminder ahead of each one. You can also download a one-time snapshot.
+- **Expiration emails.** Get an email 30 days and 7 days before a prescription expires. This needs SMTP set up (see [Email notifications](#optional-email-notifications)).
 
-- **Email alerts** — receive email warnings 7 and 30 days before a prescription's expiration date (requires SMTP configuration)
-- **ntfy push notifications** — send refill reminders and low-script alerts to any [ntfy](https://ntfy.sh/) topic
-- **Refill reminders** — configurable advance notice before a prescription's next eligible pickup date
-- **Expiration highlighting** — prescriptions approaching or past expiration are flagged in the UI
+### Accounts and sign-in
 
-### Access & Account Management
+- **Local accounts.** Passwords need at least 8 characters with an uppercase letter, a lowercase letter, a number, and a special character.
+- **Single sign-on.** Optionally sign in through any OpenID Connect provider, such as Google, Authentik, or Keycloak.
+- **Open or invite-only registration.** Registration is open by default. Turn it off and new users need an invite code.
+- **Invite codes.** Any signed-in user can create single-use invite codes, with an optional expiry.
+- **Self-service.** Users can change their own username and password under **Settings > Account**.
+- **Installable app.** Add it to your phone or desktop home screen. Pages you've already visited still load offline.
+- **Dark mode.**
 
-- **Local accounts** — username/password registration with strength requirements (8+ chars, upper, lower, digit, special)
-- **SSO / OIDC login** — optional single sign-on via any OpenID Connect provider (Google, Authentik, Keycloak, etc.)
-- **Toggleable registration** — open registration (default) or invite-only mode controlled by an environment variable
-- **Invite codes** — logged-in users can generate single-use invite codes with optional expiry; required when registration is closed
-- **Account self-service** — users can change their username and password from the Account settings tab
-- **Installable PWA** — install Medicine Cabinet as an app on mobile and desktop; cached pages work offline
+### Security and administration
 
-### Security & Administration
+- **Audit log.** Every create, update, and delete is recorded, and account holders can review it in Settings.
+- **REST API.** Everything in the app is available through the API, with interactive docs at `/api/docs`.
+- **Automatic migrations.** Database changes apply on startup, so upgrades don't need manual steps.
 
-- **Passwords protected by bcrypt** — plaintext passwords are never stored and cannot be recovered from the database
-- **User isolation** — every request verifies account access; one user cannot read another's data unless explicitly shared
-- **httpOnly cookie auth** — JWT session tokens stored in `HttpOnly`, `SameSite=Lax` cookies; never exposed to JavaScript
-- **Token revocation** — logout invalidates the session token immediately
-- **Rate limiting** — login and registration endpoints are rate-limited to prevent brute force
-- **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` on every response
-- **Audit log** — all create/update/delete events are logged and visible to account holders
+See [Privacy and security](#privacy-and-security) for how passwords, sessions, and data access are protected.
 
-### Developer / API
-
-- **REST API** — all data accessible via the FastAPI backend; interactive docs at `/api/docs`
-- **Alembic migrations** — schema migrations run automatically on startup; no manual steps
+Planned features and known gaps are tracked as [enhancement issues](https://github.com/snachodog/medicine-cabinet/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement). Suggestions are welcome there too.
 
 ---
 
-## Tech Stack
+## Tech stack
 
-| Layer        | Technology                                 |
-|--------------|--------------------------------------------|
-| Frontend     | React 18 + React Router 7 + Tailwind CSS 4 |
-| Backend      | FastAPI (Python 3.12)                      |
-| ORM          | SQLAlchemy                                 |
-| Migrations   | Alembic (auto-runs on startup)             |
-| Database     | PostgreSQL 15                              |
-| Self-hosting | Docker + Docker Compose                    |
-| Image        | `dogiakos/medicine-cabinet:latest`         |
+| Layer | Technology |
+| --- | --- |
+| Frontend | React, React Router, Tailwind CSS, Vite |
+| Backend | FastAPI (Python) |
+| ORM | SQLAlchemy |
+| Migrations | Alembic (runs on startup) |
+| Database | PostgreSQL |
+| Self-hosting | Docker and Docker Compose |
+| Image | `dogiakos/medicine-cabinet:latest` |
+
+Each [release](https://github.com/snachodog/medicine-cabinet/releases) is also published as a versioned image tag, for example `dogiakos/medicine-cabinet:1.2.1`, if you'd rather pin a version than follow `latest`.
 
 ---
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
 
-### 1. Download the compose file
+### 1. Get the files
+
+Download just the compose file and example config:
 
 ```bash
 curl -O https://raw.githubusercontent.com/snachodog/medicine-cabinet/main/docker-compose.yml
 curl -O https://raw.githubusercontent.com/snachodog/medicine-cabinet/main/.env.example
 ```
 
-Or clone the repo:
+Or clone the whole repo:
 
 ```bash
 git clone https://github.com/snachodog/medicine-cabinet.git
 cd medicine-cabinet
 ```
 
-### 2. Configure environment variables
+### 2. Configure
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env`. At minimum, set secure values for the database password and JWT secret:
+Open `.env` and set a strong database password and JWT secret. These commands generate good ones:
 
 ```bash
-openssl rand -hex 24   # for POSTGRES_PASSWORD
-openssl rand -hex 32   # for SECRET_KEY
+openssl rand -hex 24   # POSTGRES_PASSWORD
+openssl rand -hex 32   # SECRET_KEY
 ```
 
-Your minimal `.env`:
+A minimal `.env` looks like this:
 
 ```env
 POSTGRES_PASSWORD=your-strong-password
@@ -125,24 +120,22 @@ SECRET_KEY=your-long-random-secret
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
-> **Local development over plain HTTP?** The auth cookie has `Secure=true` by default, which browsers refuse to store over HTTP. If you are running the app locally without a TLS proxy, add `COOKIE_SECURE=false` to your `.env` or login will silently fail. This setting must be `true` (or omitted) in any internet-facing deployment.
+> **Running locally over plain HTTP?** Add `COOKIE_SECURE=false` to `.env`. The login cookie is marked `Secure` by default, and browsers won't store a secure cookie over HTTP, so login fails without an error message. Leave it `true` (or unset) for anything reachable from the internet.
 
-See the [Configuration reference](#configuration-reference) below for all available options.
+Every option is listed in the [configuration reference](#configuration-reference).
 
-### 3. Start
+### 3. Start it
 
 ```bash
 docker compose up -d
 ```
-
-Database migrations run automatically on startup.
 
 ### 4. Open the app
 
 - **App:** <http://localhost:8000>
 - **API docs:** <http://localhost:8000/api/docs>
 
-Register the first account on the login page.
+Create the first account from the login page.
 
 ### Updating
 
@@ -151,112 +144,111 @@ docker compose pull
 docker compose up -d
 ```
 
-Migrations are applied automatically — no manual steps required between versions.
+Migrations run automatically when the new container starts.
 
 ---
 
-## Configuration Reference
+## Configuration reference
 
-All configuration is via environment variables in `.env`. Only the required variables are needed for basic operation; everything else is optional.
+All settings are environment variables in `.env`. Only the two required ones are needed to get running.
 
 ### Required
 
-| Variable            | Description                                   |
-|---------------------|-----------------------------------------------|
-| `POSTGRES_PASSWORD` | Database password                             |
-| `SECRET_KEY`        | JWT signing secret — use a long random string |
+| Variable | Description |
+| --- | --- |
+| `POSTGRES_PASSWORD` | Database password |
+| `SECRET_KEY` | Secret used to sign login tokens. Use a long random string. |
 
-### Optional — Core
+### Optional: core
 
-| Variable                      | Default          | Description                                                                                                                                                                    |
-|-------------------------------|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `POSTGRES_USER`               | `medicabinet`    | Database username                                                                                                                                                              |
-| `POSTGRES_DB`                 | `medicabinet_db` | Database name                                                                                                                                                                  |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60`             | How long login sessions last                                                                                                                                                   |
-| `REGISTRATION_ENABLED`        | `true`           | Set to `false` to require an invite code to register                                                                                                                           |
-| `COOKIE_SECURE`               | `true`           | Adds the `Secure` flag to auth cookies. Keep `true` for HTTPS. Set to `false` for local HTTP dev - browsers drop Secure cookies over HTTP, causing login to fail.              |
+| Variable | Default | Description |
+| --- | --- | --- |
+| `POSTGRES_USER` | `medicabinet` | Database username |
+| `POSTGRES_DB` | `medicabinet_db` | Database name |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | How long a login lasts |
+| `REGISTRATION_ENABLED` | `true` | Set to `false` to require an invite code to register |
+| `COOKIE_SECURE` | `true` | Marks the login cookie `Secure` (HTTPS only). Set to `false` for local HTTP, or login will fail. |
 
-### Optional — SSO / OIDC
+### Optional: single sign-on (OIDC)
 
-All three OIDC variables must be set to enable SSO. The login page shows an SSO button automatically when enabled.
+Set the first three variables to turn on SSO. The login page then shows an SSO button.
 
-| Variable             | Description                                              |
-|----------------------|----------------------------------------------------------|
-| `OIDC_ISSUER`        | Provider discovery base URL (e.g. accounts.google.com)   |
-| `OIDC_CLIENT_ID`     | Client ID from your identity provider                    |
-| `OIDC_CLIENT_SECRET` | Client secret from your identity provider                |
-| `OIDC_PROVIDER_NAME` | Label shown on the SSO button (default: `SSO`)           |
-| `OIDC_SCOPES`        | Space-separated scopes (default: `openid email profile`) |
-| `OIDC_REDIRECT_URI`  | Full callback URL (default: derived from the request)    |
+| Variable | Description |
+| --- | --- |
+| `OIDC_ISSUER` | Provider's discovery base URL, e.g. `https://accounts.google.com` |
+| `OIDC_CLIENT_ID` | Client ID from your identity provider |
+| `OIDC_CLIENT_SECRET` | Client secret from your identity provider |
+| `OIDC_PROVIDER_NAME` | Label on the SSO button (default: `SSO`) |
+| `OIDC_SCOPES` | Space-separated scopes (default: `openid email profile`) |
+| `OIDC_REDIRECT_URI` | Full callback URL (default: built from the request) |
 
-Your identity provider's redirect URI must be set to:
+Register this redirect URI with your identity provider:
 
 ```text
 http(s)://your-domain/api/auth/oidc/callback
 ```
 
-Providers such as Authentik and Keycloak compare this value exactly, including the scheme. Behind a reverse proxy, the app reads `X-Forwarded-Proto` and `X-Forwarded-Host` to build the URL. If your proxy does not send these headers, or login fails with a redirect URI error, set `OIDC_REDIRECT_URI` to the same value you registered with the provider. The URL the app sends is logged on each login attempt (`Starting OIDC login with redirect_uri=...`).
+Providers like Authentik and Keycloak require an exact match, scheme included. Behind a reverse proxy, the app builds the URL from the `X-Forwarded-Proto` and `X-Forwarded-Host` headers. If your proxy doesn't send those, or you see a redirect URI error, set `OIDC_REDIRECT_URI` to exactly what you registered. The app logs the URL it sends on every attempt (`Starting OIDC login with redirect_uri=...`), which helps when comparing.
 
-### Optional — Email notifications
+### Optional: email notifications
 
-All five SMTP variables must be set to enable email alerts.
+Set all five variables to turn on email.
 
-| Variable        | Description                                        |
-|-----------------|----------------------------------------------------|
-| `SMTP_HOST`     | SMTP server hostname, e.g. `smtp.gmail.com`        |
-| `SMTP_PORT`     | SMTP port (default: `587`)                         |
-| `SMTP_USER`     | SMTP login username                                |
-| `SMTP_PASSWORD` | SMTP login password                                |
-| `SMTP_FROM`     | From address for outgoing emails                   |
+| Variable | Description |
+| --- | --- |
+| `SMTP_HOST` | SMTP server, e.g. `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP port (default: `587`) |
+| `SMTP_USER` | SMTP username |
+| `SMTP_PASSWORD` | SMTP password |
+| `SMTP_FROM` | From address on outgoing mail |
 
-Once configured, users opt in per-account under **Settings → Notifications** and provide their email address there.
-
----
-
-## Roadmap
-
-- [ ] Dashboard view — expiring prescriptions, upcoming refills, recent activity at a glance
-- [ ] CSV import/export for bulk medication management
-- [ ] Password reset via email
+Each user then opts in and enters their address under **Settings > Notifications**. Expiration checks run once a day at 09:00 server time.
 
 ---
 
-## Privacy & Security
+## Privacy and security
 
-Medicine Cabinet is designed to be **self-hosted** so sensitive health data stays on your own server and never passes through a third-party service. You control the database, the backups, and who has access.
+Medicine Cabinet is meant to be self-hosted, so health data stays on your server and never goes through a third-party service. You own the database, the backups, and the access list.
 
-### Security measures
+### What the app does
 
 | Area | Details |
 | --- | --- |
-| **Passwords** | Stored as bcrypt hashes with a random salt. Plaintext passwords are never written to disk and cannot be recovered from the database. |
-| **User isolation** | Every API request verifies that the requesting account has been granted access to the person's data. One user cannot read another's medications, logs, or prescriptions unless explicitly shared. |
-| **Auth cookies** | JWT session tokens are stored in `HttpOnly`, `SameSite=Lax` cookies — not accessible to JavaScript. The `Secure` flag is enabled by default (`COOKIE_SECURE=true`) so cookies are only transmitted over HTTPS. |
-| **Token revocation** | Logging out immediately invalidates the session token. |
-| **Rate limiting** | Login and registration endpoints are rate-limited to slow brute-force attempts. |
-| **Transport** | Designed to run behind a TLS-terminating reverse proxy (Cloudflare, Caddy, nginx). The Docker image does not expose plain HTTP to the internet. |
+| **Passwords** | Stored as salted bcrypt hashes. Plaintext passwords are never saved and can't be recovered from the database. |
+| **Data isolation** | Every API request checks that the account has access to the person it's asking about. Nobody sees another household's medications, logs, or prescriptions unless they've been shared. |
+| **Login cookies** | Session tokens live in `HttpOnly`, `SameSite=Lax` cookies, so page scripts can't read them. The `Secure` flag is on by default. |
+| **Logout** | Logging out revokes the token right away. Revocations are held in memory, so a container restart clears the list; tokens still expire after `ACCESS_TOKEN_EXPIRE_MINUTES`. |
+| **Rate limiting** | Registration is limited to 5 attempts per minute and login to 10 per minute, per client. |
+| **Security headers** | Every response sets `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, and `Referrer-Policy`. |
 
-### Recommendations for self-hosters
+### What you should do
 
-- **Enable HTTPS** - run behind Cloudflare, Caddy, or an nginx reverse proxy with a TLS certificate. Do not expose port 8000 directly to the internet.
-- **Enable disk/volume encryption** on the host to protect database files if physical media is ever lost or seized.
-- **Restrict database access** - the Postgres port is not published externally by default in `docker-compose.yml`. Keep it that way.
-- **Keep backups encrypted** - if you back up the Postgres volume, encrypt the backup at rest.
-- **Use a strong `SECRET_KEY`** - generate with `openssl rand -hex 32`. Rotating it invalidates all active sessions.
+- **Put it behind HTTPS.** The container serves plain HTTP on port 8000. Run it behind Cloudflare, Caddy, or nginx with a TLS certificate, and don't expose port 8000 to the internet directly.
+- **Encrypt the host disk** so the database files are protected if the hardware is lost or stolen.
+- **Keep Postgres private.** The default `docker-compose.yml` doesn't publish the database port. Leave it that way.
+- **Encrypt your backups** if you back up the Postgres volume.
+- **Use a strong `SECRET_KEY`.** Generate one with `openssl rand -hex 32`. Changing it signs everyone out.
 
-### OIDC / SSO note
+### A note on SSO
 
-OIDC accounts are provisioned on first login using the verified email address returned by the identity provider. No unverified auto-provisioning occurs. The identity provider is responsible for authenticating the user — Medicine Cabinet trusts the claims in the OIDC token.
+After the first SSO sign-in, an account is tied to that person's identity at the provider (the issuer and `sub` claim), so later sign-ins don't depend on email at all.
+
+On that first sign-in, the app looks for an existing account with the same email address:
+
+- **Email verified by the provider:** the SSO identity is linked to that account.
+- **Email not verified:** sign-in is refused, so nobody can claim someone else's account with an unverified address. Verify the email at the provider, or turn on its `email_verified` claim.
+- **More than one account uses the email:** sign-in is refused until the duplicate is fixed.
+- **No match:** a new account is created. The email is saved only if the provider verified it.
 
 ---
 
 ## License
 
-[MIT](LICENSE) — © 2026 Steven Dogiakos
+[MIT](LICENSE). Copyright 2026 Steven Dogiakos.
 
 ---
 
 ## Acknowledgments
 
-- [Snipe-IT](https://snipeitapp.com/) for the asset/consumable management model
+- [Snipe-IT](https://snipeitapp.com/), for the asset management model this is based on
 - The open-source community that makes self-hosting practical
