@@ -63,11 +63,11 @@ Planned features and known gaps are tracked as [enhancement issues](https://gith
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | React 19, React Router 8, Tailwind CSS 4, Vite 8 |
-| Backend | FastAPI (Python 3.12) |
+| Frontend | React, React Router, Tailwind CSS, Vite |
+| Backend | FastAPI (Python) |
 | ORM | SQLAlchemy |
 | Migrations | Alembic (runs on startup) |
-| Database | PostgreSQL 15 |
+| Database | PostgreSQL |
 | Self-hosting | Docker and Docker Compose |
 | Image | `dogiakos/medicine-cabinet:latest` |
 
@@ -231,7 +231,14 @@ Medicine Cabinet is meant to be self-hosted, so health data stays on your server
 
 ### A note on SSO
 
-The first time someone signs in through OIDC, the app matches them to an existing account by email address, or creates a new account if there's no match. It trusts whatever email the identity provider returns and doesn't check an `email_verified` claim. Only connect an identity provider you control that verifies email addresses.
+After the first SSO sign-in, an account is tied to that person's identity at the provider (the issuer and `sub` claim), so later sign-ins don't depend on email at all.
+
+On that first sign-in, the app looks for an existing account with the same email address:
+
+- **Email verified by the provider:** the SSO identity is linked to that account.
+- **Email not verified:** sign-in is refused, so nobody can claim someone else's account with an unverified address. Verify the email at the provider, or turn on its `email_verified` claim.
+- **More than one account uses the email:** sign-in is refused until the duplicate is fixed.
+- **No match:** a new account is created. The email is saved only if the provider verified it.
 
 ---
 
