@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from . import models, schemas
@@ -15,11 +16,31 @@ def get_account_by_username(db: Session, username: str):
 def get_account_by_id(db: Session, account_id: int):
     return db.query(models.Account).filter(models.Account.id == account_id).first()
 
-def get_account_by_email(db: Session, email: str):
-    return db.query(models.Account).filter(models.Account.email == email).first()
+def get_accounts_by_email(db: Session, email: str):
+    """All accounts whose email matches, ignoring case."""
+    return db.query(models.Account).filter(func.lower(models.Account.email) == email.lower()).all()
 
-def create_account(db: Session, username: str, hashed_password: str, email: str = None):
-    account = models.Account(username=username, hashed_password=hashed_password, email=email)
+def get_account_by_oidc(db: Session, issuer: str, subject: str):
+    return db.query(models.Account).filter(
+        models.Account.oidc_issuer == issuer,
+        models.Account.oidc_subject == subject,
+    ).first()
+
+def create_account(
+    db: Session,
+    username: str,
+    hashed_password: str,
+    email: str = None,
+    oidc_issuer: str = None,
+    oidc_subject: str = None,
+):
+    account = models.Account(
+        username=username,
+        hashed_password=hashed_password,
+        email=email,
+        oidc_issuer=oidc_issuer,
+        oidc_subject=oidc_subject,
+    )
     db.add(account)
     db.commit()
     db.refresh(account)
