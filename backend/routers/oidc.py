@@ -10,10 +10,13 @@
 # Optional:
 #   OIDC_PROVIDER_NAME   — display name shown on the login button (default: "SSO")
 #   OIDC_SCOPES          — space-separated scopes (default: "openid email profile")
+#   OIDC_REDIRECT_URI    - full callback URL, e.g. https://meds.example.com/api/auth/oidc/callback
+#                          (default: derived from the request / X-Forwarded-* headers)
 
 import os
 import secrets
 import logging
+from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -33,6 +36,7 @@ OIDC_ISSUER        = _raw_issuer
 OIDC_CLIENT_ID     = os.getenv("OIDC_CLIENT_ID", "")
 OIDC_CLIENT_SECRET = os.getenv("OIDC_CLIENT_SECRET", "")
 OIDC_SCOPES        = os.getenv("OIDC_SCOPES", "openid email profile")
+OIDC_REDIRECT_URI  = os.getenv("OIDC_REDIRECT_URI", "").strip()
 OIDC_CONFIGURED    = bool(OIDC_ISSUER and OIDC_CLIENT_ID and OIDC_CLIENT_SECRET)
 COOKIE_SECURE      = os.getenv("COOKIE_SECURE", "true").lower() == "true"
 
@@ -54,10 +58,17 @@ async def _discover() -> dict:
 
 
 def _redirect_uri(request: Request) -> str:
-    # Build the callback URL from the incoming request's base URL so it works
-    # behind a reverse proxy without hardcoding a hostname in env.
-    base = str(request.base_url).rstrip("/")
-    return f"{base}/api/auth/oidc/callback"
+    if OIDC_REDIRECT_URI:
+        return OIDC_REDIRECT_URI
+    # Build the callback URL from the incoming request so it works behind a
+    # reverse proxy without hardcoding a hostname in env. Uvicorn only trusts
+    # X-Forwarded-* from localhost, so a TLS-terminating proxy on another host
+    # would otherwise yield http:// and fail the provider's exact-match check.
+    # Trusting these headers here is safe: the provider rejects any redirect
+    # URI that is not registered for the client.
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme).split(",")[0].strip()
+    host = request.headers.get("x-forwarded-host", request.url.netloc).split(",")[0].strip()
+    return f"{proto}://{host}/api/auth/oidc/callback"
 
 
 @router.get("/login")
@@ -67,14 +78,16 @@ async def oidc_login(request: Request):
 
     config = await _discover()
     state = secrets.token_urlsafe(32)
-    params = (
-        f"?response_type=code"
-        f"&client_id={OIDC_CLIENT_ID}"
-        f"&redirect_uri={_redirect_uri(request)}"
-        f"&scope={OIDC_SCOPES.replace(' ', '+')}"
-        f"&state={state}"
-    )
-    auth_url = config["authorization_endpoint"] + params
+    redirect_uri = _redirect_uri(request)
+    logger.info("Starting OIDC login with redirect_uri=%s", redirect_uri)
+    params = urlencode({
+        "response_type": "code",
+        "client_id": OIDC_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "scope": OIDC_SCOPES,
+        "state": state,
+    })
+    auth_url = f"{config['authorization_endpoint']}?{params}"
 
     response = RedirectResponse(auth_url, status_code=302)
     response.set_cookie(

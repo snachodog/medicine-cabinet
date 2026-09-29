@@ -187,12 +187,15 @@ All three OIDC variables must be set to enable SSO. The login page shows an SSO 
 | `OIDC_CLIENT_SECRET` | Client secret from your identity provider                |
 | `OIDC_PROVIDER_NAME` | Label shown on the SSO button (default: `SSO`)           |
 | `OIDC_SCOPES`        | Space-separated scopes (default: `openid email profile`) |
+| `OIDC_REDIRECT_URI`  | Full callback URL (default: derived from the request)    |
 
 Your identity provider's redirect URI must be set to:
 
 ```text
 http(s)://your-domain/api/auth/oidc/callback
 ```
+
+Providers such as Authentik and Keycloak compare this value exactly, including the scheme. Behind a reverse proxy, the app reads `X-Forwarded-Proto` and `X-Forwarded-Host` to build the URL. If your proxy does not send these headers, or login fails with a redirect URI error, set `OIDC_REDIRECT_URI` to the same value you registered with the provider. The URL the app sends is logged on each login attempt (`Starting OIDC login with redirect_uri=...`).
 
 ### Optional — Email notifications
 
