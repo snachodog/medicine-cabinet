@@ -15,6 +15,13 @@ class Account(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, server_default="true", nullable=False)
     email = Column(String, nullable=True)
+    # Stable OIDC identity (issuer + sub claim). Set on first SSO login.
+    oidc_issuer = Column(String, nullable=True)
+    oidc_subject = Column(String, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("oidc_issuer", "oidc_subject", name="uq_accounts_oidc_identity"),
+    )
 
     person_access = relationship("AccountPersonAccess", back_populates="account")
     dose_logs = relationship("DoseLog", back_populates="logged_by")
