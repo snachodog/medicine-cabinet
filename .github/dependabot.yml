@@ -23,6 +23,12 @@ updates:
     labels:
       - "dependencies"
       - "frontend"
+    groups:
+      # react-dom pins an exact react peer version, so bump both in one PR
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
     ignore:
       # Peg react and react-dom together; bump manually to avoid partial upgrades
       - dependency-name: "react"
