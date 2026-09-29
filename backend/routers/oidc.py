@@ -146,15 +146,43 @@ async def oidc_callback(
             raise HTTPException(status_code=502, detail="Userinfo fetch failed")
         userinfo = userinfo_r.json()
 
-    email: str = userinfo.get("email") or ""
-    sub: str   = userinfo.get("sub") or ""
+    email: str = (userinfo.get("email") or "").strip()
+    sub: str   = str(userinfo.get("sub") or "")
+    # Only a literal true counts. Some providers omit the claim or send "false".
+    email_verified = userinfo.get("email_verified") is True
 
-    if not email and not sub:
-        raise HTTPException(status_code=400, detail="Provider did not return email or sub claim")
+    if not sub:
+        raise HTTPException(status_code=400, detail="Provider did not return a sub claim")
 
-    # Find existing account by email, then fall back to creating one
-    account = crud.get_account_by_email(db, email) if email else None
+    # 1. Returning SSO user: match on the stable issuer + sub identity.
+    account = crud.get_account_by_oidc(db, OIDC_ISSUER, sub)
 
+    # 2. First SSO login for an existing account: link by email, but only when
+    #    the provider says the address is verified. Otherwise anyone who can
+    #    register an unverified address at the provider could take over the
+    #    matching account here.
+    if account is None and email:
+        matches = [a for a in crud.get_accounts_by_email(db, email) if not a.oidc_subject]
+        if matches:
+            if not email_verified:
+                logger.warning(
+                    "OIDC login refused: email %s matches an existing account but the "
+                    "provider did not mark it verified (sub=%s)", email, sub,
+                )
+                return RedirectResponse("/login?error=oidc_email_unverified", status_code=302)
+            if len(matches) > 1:
+                logger.warning(
+                    "OIDC login refused: email %s matches %d accounts (sub=%s)",
+                    email, len(matches), sub,
+                )
+                return RedirectResponse("/login?error=oidc_email_ambiguous", status_code=302)
+            account = matches[0]
+            account.oidc_issuer = OIDC_ISSUER
+            account.oidc_subject = sub
+            db.commit()
+            logger.info("Linked account '%s' to OIDC identity (sub=%s)", account.username, sub)
+
+    # 3. New user: create an account tied to this identity.
     if account is None:
         # Derive a username from the email prefix or the sub claim
         base = (email.split("@")[0] if email else sub)[:48]
@@ -167,7 +195,12 @@ async def oidc_callback(
         # Account created via OIDC has no usable password — store a random hash
         import bcrypt as _bcrypt
         dummy_hash = _bcrypt.hashpw(secrets.token_bytes(32), _bcrypt.gensalt()).decode()
-        account = crud.create_account(db, username, dummy_hash, email=email or None)
+        account = crud.create_account(
+            db, username, dummy_hash,
+            email=email if email_verified else None,
+            oidc_issuer=OIDC_ISSUER,
+            oidc_subject=sub,
+        )
         logger.info("Auto-created account '%s' via OIDC (sub=%s)", username, sub)
 
     if not account.is_active:

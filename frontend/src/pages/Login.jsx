@@ -18,6 +18,8 @@ export default function Login() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('error') === 'oidc_denied') setError('SSO login was cancelled or denied.');
     if (params.get('error') === 'account_disabled') setError('Your account is disabled.');
+    if (params.get('error') === 'oidc_email_unverified') setError('Your SSO provider has not verified your email address, so it cannot be linked to an existing account. Verify it with your provider, or sign in with your password.');
+    if (params.get('error') === 'oidc_email_ambiguous') setError('More than one account uses your email address, so SSO cannot pick one. Ask an administrator to fix the duplicate.');
 
     axios.get('/api/auth/config').then(r => {
       setConfig(r.data);
